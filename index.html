@@ -595,6 +595,7 @@
   let pinchLastDistance = 0
   let pinchLastCenterX = 0
   let pinchLastCenterY = 0
+  let pinchLastAngle = 0
 
   const activeSceneTouches = new Map()
 
@@ -611,6 +612,7 @@
     sigma: 10,
     rho: 28,
     beta: 8 / 3,
+    rotation: 0,
     anchorX: 0,
     anchorY: 0,
     targetAnchorX: 0,
@@ -718,7 +720,20 @@
       centerX: (firstTouch.x + secondTouch.x) * 0.5,
       centerY: (firstTouch.y + secondTouch.y) * 0.5,
       distance: Math.hypot(dx, dy),
+      angle: Math.atan2(dy, dx),
     }
+  }
+
+  function normalizeAngleDelta(angle) {
+    if (angle > Math.PI) {
+      return angle - Math.PI * 2
+    }
+
+    if (angle < -Math.PI) {
+      return angle + Math.PI * 2
+    }
+
+    return angle
   }
 
   function syncPinchState() {
@@ -728,6 +743,7 @@
       pinchLastDistance = 0
       pinchLastCenterX = 0
       pinchLastCenterY = 0
+      pinchLastAngle = 0
       return false
     }
 
@@ -735,26 +751,31 @@
       pinchLastDistance = pinchMetrics.distance
       pinchLastCenterX = pinchMetrics.centerX
       pinchLastCenterY = pinchMetrics.centerY
+      pinchLastAngle = pinchMetrics.angle
       return true
     }
 
     if (pinchMetrics.distance > 0) {
       const currentCenter = getVisibleAnchorPosition()
       const currentZoomMultiplier = zoomMultiplier
+      const rotationDelta = normalizeAngleDelta(pinchMetrics.angle - pinchLastAngle)
       const nextZoomMultiplier = clamp(
         currentZoomMultiplier * (pinchMetrics.distance / pinchLastDistance),
         minZoomMultiplier,
         maxZoomMultiplier
       )
       const scaleRatio = nextZoomMultiplier / currentZoomMultiplier
-      const nextCenterX = pinchMetrics.centerX
-        - (pinchMetrics.centerX - currentCenter.x) * scaleRatio
-        + (pinchMetrics.centerX - pinchLastCenterX)
-      const nextCenterY = pinchMetrics.centerY
-        - (pinchMetrics.centerY - currentCenter.y) * scaleRatio
-        + (pinchMetrics.centerY - pinchLastCenterY)
+      const offsetX = currentCenter.x - pinchLastCenterX
+      const offsetY = currentCenter.y - pinchLastCenterY
+      const cos = Math.cos(rotationDelta)
+      const sin = Math.sin(rotationDelta)
+      const rotatedOffsetX = (offsetX * cos - offsetY * sin) * scaleRatio
+      const rotatedOffsetY = (offsetX * sin + offsetY * cos) * scaleRatio
+      const nextCenterX = pinchMetrics.centerX + rotatedOffsetX
+      const nextCenterY = pinchMetrics.centerY + rotatedOffsetY
 
       zoomMultiplier = nextZoomMultiplier
+      state.rotation += rotationDelta
       setAnchorFromVisibleCenter(nextCenterX, nextCenterY)
       update()
     }
@@ -762,6 +783,7 @@
     pinchLastDistance = pinchMetrics.distance
     pinchLastCenterX = pinchMetrics.centerX
     pinchLastCenterY = pinchMetrics.centerY
+    pinchLastAngle = pinchMetrics.angle
 
     return true
   }
@@ -1320,6 +1342,8 @@
     const centerX = state.anchorX
     const scaleCompensation = (state.temperatureScale - baseScale) * 30
     const centerY = state.anchorY - scaleCompensation
+    const cosRotation = Math.cos(state.rotation)
+    const sinRotation = Math.sin(state.rotation)
 
     ctx.fillStyle = "rgba(0, 0, 0, 0.045)"
     ctx.fillRect(0, 0, width, height)
@@ -1338,8 +1362,10 @@
       state.y += dy * dt
       state.z += dz * dt
 
-      const px = centerX + state.x * state.scale
-      const py = centerY + state.z * state.scale - state.y * state.scale * 0.28
+      const projectedX = state.x * state.scale
+      const projectedY = state.z * state.scale - state.y * state.scale * 0.28
+      const px = centerX + projectedX * cosRotation - projectedY * sinRotation
+      const py = centerY + projectedX * sinRotation + projectedY * cosRotation
 
       if (i === 0) {
         ctx.moveTo(px, py)
