@@ -322,8 +322,8 @@
     }
 
     .parameter-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
     }
 
     .temperature-slider {
@@ -341,11 +341,34 @@
     .parameter-panel {
       width: 100%;
       max-width: 520px;
+      padding: 12px 12px 14px;
+    }
+
+    .parameter-panel-title {
+      margin-bottom: 10px;
+    }
+
+    .parameter-field {
+      gap: 4px;
+    }
+
+    .parameter-field span {
+      font-size: 9px;
+    }
+
+    .parameter-field input {
+      padding: 7px 8px;
+      font-size: 14px;
+      border-radius: 10px;
     }
 
     .ios-vertical-slider {
       height: 38px;
       flex: 0 0 auto;
+    }
+    
+    #hint {
+      display: none;
     }
   }
 
@@ -425,16 +448,6 @@
     backdrop-filter: blur(16px);
   }
 
-  @media (max-width: 480px) {
-    .parameter-grid {
-      grid-template-columns: 1fr;
-    }
-
-    #hint {
-      display: none;
-    }
-
-  }
 </style>
 
 <body>
@@ -557,7 +570,7 @@
   let pixelRatio = 1
   let uiHidden = false
   let speedMultiplier = minActiveSpeedMultiplier
-  let zoomMultiplier = 1
+  let zoomMultiplier = window.matchMedia("(max-width: 640px)").matches ? 0.7 : 1
   let greenBoost = false
   let greenFlowLocked = false
   let greenFlowHeld = false
