@@ -170,9 +170,9 @@
   }
 
   .preset-button.is-active {
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.38);
-    color: rgba(255, 255, 255, 0.96);
+    background: rgba(95, 255, 146, 0.16);
+    border-color: rgba(95, 255, 146, 0.42);
+    color: rgba(191, 255, 208, 0.96);
   }
 
   .parameter-field.is-active span {
@@ -180,9 +180,9 @@
   }
 
   .parameter-field.is-active input {
-    border-color: rgba(255, 255, 255, 0.38);
-    background: rgba(255, 255, 255, 0.16);
-    color: rgba(255, 255, 255, 0.96);
+    background: rgba(95, 255, 146, 0.16);
+    border-color: rgba(95, 255, 146, 0.42);
+    color: rgba(191, 255, 208, 0.96);
   }
 
   .parameter-field {
@@ -1096,10 +1096,12 @@
   function handleClassicPresetButtonClick() {
     if (classicPresetActive) {
       setClassicPresetActive(false)
+      classicPresetButton.blur()
       return
     }
 
     applyClassicLorenzPreset()
+    classicPresetButton.blur()
   }
 
   function applySpeedFromPointer(clientX) {
