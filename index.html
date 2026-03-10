@@ -63,6 +63,20 @@
     width: 100%;
   }
 
+  .temperature-slider-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .parameter-panel {
     width: min(100%, 430px);
     box-sizing: border-box;
@@ -158,51 +172,6 @@
     background: rgba(255, 255, 255, 0.12);
   }
 
-  #slider {
-    width: min(88vw, 420px);
-    appearance: none;
-    -webkit-appearance: none;
-    height: 44px;
-    background: transparent;
-    touch-action: pan-x;
-    cursor: pointer;
-  }
-
-  #slider::-webkit-slider-runnable-track {
-    height: 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(0, 0, 0, 0.15);
-  }
-
-  #slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 32px;
-    height: 32px;
-    margin-top: -10px;
-    border: 0;
-    border-radius: 50%;
-    background: #111;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
-  }
-
-  #slider::-moz-range-track {
-    height: 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(0, 0, 0, 0.15);
-  }
-
-  #slider::-moz-range-thumb {
-    width: 32px;
-    height: 32px;
-    border: 0;
-    border-radius: 50%;
-    background: #111;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
-  }
-
   .ios-vertical-slider {
     position: relative;
     width: 188px;
@@ -216,8 +185,12 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.14),
       0 24px 48px rgba(0, 0, 0, 0.28);
     overflow: hidden;
-    cursor: ew-resize;
     touch-action: none;
+  }
+
+  .ios-vertical-slider:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.58);
+    outline-offset: 4px;
   }
 
   .ios-vertical-slider-fill {
@@ -229,15 +202,29 @@
 
   .ios-vertical-slider-icon {
     position: absolute;
-    left: 50%;
+    left: 0;
+    right: 0;
     top: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateY(-50%);
     z-index: 1;
     user-select: none;
     pointer-events: none;
+    width: 100%;
+    white-space: nowrap;
+    text-align: center;
     font-size: 22px;
     color: rgba(18, 20, 24, 0.7);
     mix-blend-mode: multiply;
+  }
+
+  .temperature-slider {
+    width: min(88vw, 420px);
+    height: 44px;
+    margin-bottom: 0;
+  }
+
+  .temperature-slider .ios-vertical-slider-icon {
+    font-size: 22px;
   }
 
   @media (max-width: 640px) {
@@ -257,27 +244,12 @@
       gap: 10px;
     }
 
-    #slider {
+    .temperature-slider {
       order: 4;
       margin-top: 18px;
       width: 100%;
       max-width: 520px;
       height: 52px;
-    }
-
-    #slider::-webkit-slider-runnable-track,
-    #slider::-moz-range-track {
-      height: 18px;
-    }
-
-    #slider::-webkit-slider-thumb,
-    #slider::-moz-range-thumb {
-      width: 38px;
-      height: 38px;
-    }
-
-    #slider::-webkit-slider-thumb {
-      margin-top: -10px;
     }
 
     .ios-vertical-slider {
@@ -302,12 +274,6 @@
     padding: 6px 20px;
   }
 
-  h1 {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.499);
-    font-size: 24px;
-  }
-
   @media (max-width: 480px) {
     .parameter-grid {
       grid-template-columns: 1fr;
@@ -317,24 +283,27 @@
       display: none;
     }
 
-    h1 {
-      margin-bottom: 0;
-    }
   }
 </style>
 
 <body>
   <canvas id="attractor"></canvas>
   <div id="app">
-    <h1>Choose Color Temperature</h1>
     <div class="controls">
       <div class="temperature-control">
-        <input type="range" min="100" max="44444" value="3000" id="slider">
+        <input class="temperature-slider-input" type="range" min="100" max="44444" value="3000" id="slider" tabindex="-1"
+          aria-hidden="true">
+        <button id="temperatureSlider" class="ios-vertical-slider temperature-slider" type="button" role="slider"
+          aria-label="color temperature" aria-orientation="horizontal" aria-valuemin="100" aria-valuemax="44444"
+          aria-valuenow="3000">
+          <div id="temperatureSliderFill" class="ios-vertical-slider-fill"></div>
+          <div id="temperatureSliderLabel" class="ios-vertical-slider-icon">color temperature(3000K)</div>
+        </button>
       </div>
-      <button id="speedSlider" class="ios-vertical-slider" type="button" aria-label="Animation speed" aria-valuemin="0.1"
-        aria-valuemax="10" aria-valuenow="1">
+      <button id="speedSlider" class="ios-vertical-slider" type="button" role="slider" aria-label="Animation speed"
+        aria-orientation="horizontal" aria-valuemin="0.1" aria-valuemax="10" aria-valuenow="1">
         <div id="speedSliderFill" class="ios-vertical-slider-fill"></div>
-        <div class="ios-vertical-slider-icon">speed</div>
+        <div id="speedSliderLabel" class="ios-vertical-slider-icon">speed(1x)</div>
       </button>
     </div>
     <div class="parameter-panel">
@@ -375,8 +344,12 @@
 <script>
   const app = document.getElementById("app")
   const slider = document.getElementById("slider")
+  const temperatureSlider = document.getElementById("temperatureSlider")
+  const temperatureSliderFill = document.getElementById("temperatureSliderFill")
+  const temperatureSliderLabel = document.getElementById("temperatureSliderLabel")
   const speedSlider = document.getElementById("speedSlider")
   const speedSliderFill = document.getElementById("speedSliderFill")
+  const speedSliderLabel = document.getElementById("speedSliderLabel")
   const classicPresetButton = document.getElementById("classicPresetButton")
   const hintEl = document.getElementById("hint")
   const canvas = document.getElementById("attractor")
@@ -693,17 +666,52 @@
       : Number(zoomMultiplier.toFixed(2)).toString()
   }
 
+  function temperatureToProgress(value) {
+    const min = Number(slider.min)
+    const max = Number(slider.max)
+
+    return (clamp(Number(value), min, max) - min) / (max - min)
+  }
+
+  function progressToTemperature(progress) {
+    const min = Number(slider.min)
+    const max = Number(slider.max)
+    const safeProgress = clamp(progress, 0, 1)
+
+    return Math.round(min + (max - min) * safeProgress)
+  }
+
+  function updateTemperatureSliderUI() {
+    const value = Number(slider.value)
+    const fillWidth = Math.max(0, temperatureToProgress(value) * 100)
+
+    temperatureSliderFill.style.setProperty("--fill-width", fillWidth + "%")
+    temperatureSliderLabel.textContent = `color temperature(${value}K)`
+    temperatureSlider.setAttribute("aria-valuenow", value.toString())
+    temperatureSlider.setAttribute("aria-valuetext", value + " kelvin")
+  }
+
   function updateSpeedSliderUI() {
     const progress = speedMultiplierToProgress(speedMultiplier)
     const fillWidth = Math.max(0, progress * 100)
 
     speedSliderFill.style.setProperty("--fill-width", fillWidth + "%")
+    speedSliderLabel.textContent = `speed(${formatSpeedMultiplier()}x)`
     speedSlider.setAttribute("aria-valuenow", speedMultiplier.toFixed(2))
     speedSlider.setAttribute("aria-valuetext", formatSpeedMultiplier() + "x")
   }
 
   function setSpeedMultiplier(nextValue) {
     speedMultiplier = clamp(nextValue, minSpeedMultiplier, maxSpeedMultiplier)
+    update()
+  }
+
+  function setTemperature(nextValue) {
+    const min = Number(slider.min)
+    const max = Number(slider.max)
+
+    slider.value = Math.round(clamp(nextValue, min, max)).toString()
+    clearDynamicOverrides()
     update()
   }
 
@@ -789,12 +797,19 @@
     setSpeedMultiplier(progressToSpeedMultiplier(progress))
   }
 
+  function applyTemperatureFromPointer(clientX) {
+    const rect = temperatureSlider.getBoundingClientRect()
+    const progress = (clientX - rect.left) / rect.width
+    setTemperature(progressToTemperature(progress))
+  }
+
   function update() {
     const k = Number(slider.value)
     const rgb = kelvinToRGB(k)
 
-    hintEl.innerHTML = `Space: toggle UI · Enter: green flow <br />← →: temperature (${k}K) · ↑ ↓: speed (${formatSpeedMultiplier()}x) · Wheel / +/-: zoom (${formatZoomMultiplier()}x)`
+    hintEl.innerHTML = `Space: toggle UI · Enter: green flow <br />← →: temperature · ↑ ↓: speed · Wheel / +/-: zoom (${formatZoomMultiplier()}x)`
     syncAttractor(k, rgb)
+    updateTemperatureSliderUI()
     updateSpeedSliderUI()
     updateAnchor()
   }
@@ -923,12 +938,23 @@
     speedSlider.setPointerCapture(event.pointerId)
     applySpeedFromPointer(event.clientX)
   })
+  temperatureSlider.addEventListener("pointerdown", (event) => {
+    temperatureSlider.setPointerCapture(event.pointerId)
+    applyTemperatureFromPointer(event.clientX)
+  })
   speedSlider.addEventListener("pointermove", (event) => {
     if (event.buttons === 0 && event.pointerType !== "touch") {
       return
     }
 
     applySpeedFromPointer(event.clientX)
+  })
+  temperatureSlider.addEventListener("pointermove", (event) => {
+    if (event.buttons === 0 && event.pointerType !== "touch") {
+      return
+    }
+
+    applyTemperatureFromPointer(event.clientX)
   })
   speedSlider.addEventListener("keydown", (event) => {
     if (event.code === "ArrowUp" || event.code === "ArrowRight") {
@@ -940,6 +966,18 @@
     if (event.code === "ArrowDown" || event.code === "ArrowLeft") {
       event.preventDefault()
       setSpeedMultiplier(speedMultiplier / 1.08)
+    }
+  })
+  temperatureSlider.addEventListener("keydown", (event) => {
+    if (event.code === "ArrowRight") {
+      event.preventDefault()
+      setTemperature(Number(slider.value) + 100)
+      return
+    }
+
+    if (event.code === "ArrowLeft") {
+      event.preventDefault()
+      setTemperature(Number(slider.value) - 100)
     }
   })
   window.addEventListener("resize", resizeCanvas)
