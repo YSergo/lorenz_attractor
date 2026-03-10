@@ -69,7 +69,7 @@
   }
 
   .menu-button {
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.82);
@@ -77,6 +77,11 @@
     font: inherit;
     cursor: pointer;
     transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+
+  .hiddenMenu {
+    padding: 12px 12px;
+    /* background: linear-gradient(#e66465, #9198e5); */
   }
 
   .menu-button:hover {
@@ -122,6 +127,7 @@
     box-sizing: border-box;
     padding: 14px 16px 16px;
     border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(0, 0, 0, 0.28);
     color: rgba(255, 255, 255, 0.72);
   }
@@ -237,9 +243,6 @@
     padding: 0;
     border-radius: 34px;
     background: rgba(255, 255, 255, 0.12);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      0 24px 48px rgba(0, 0, 0, 0.28);
     overflow: hidden;
     touch-action: none;
   }
@@ -353,12 +356,65 @@
 
   #hint {
     align-self: center;
-    font-size: 12px;
     user-select: none;
-    color: rgba(255, 255, 255, 0.5);
-    border-radius: 30px;
+    color: rgba(255, 255, 255, 0.68);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(0, 0, 0, 0.308);
-    padding: 6px 20px;
+    padding: 12px 14px;
+    width: min(88vw, 310px);
+    box-sizing: border-box;
+    backdrop-filter: blur(16px);
+  }
+
+  .hint-grid {
+    display: grid;
+    grid-template-columns: 176px max-content;
+    align-items: center;
+    justify-content: center;
+    column-gap: 6px;
+    row-gap: 8px;
+    width: fit-content;
+    margin: 0 auto;
+  }
+
+  .hint-keys {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    min-width: 50px;
+  }
+
+  .hint-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 22px;
+    padding: 0 7px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 10px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .hint-label {
+    width: 176px;
+    font-size: 12px;
+    line-height: 1.25;
+    text-align: left;
+    color: rgba(255, 255, 255, 0.72);
+    white-space: nowrap;
+  }
+
+  .hint-value {
+    display: inline-block;
+    min-width: 8ch;
+    color: rgba(255, 255, 255, 0.46);
+    text-align: left;
   }
 
   #menuToggleButton {
@@ -396,13 +452,13 @@
           aria-label="color temperature" aria-orientation="horizontal" aria-valuemin="100" aria-valuemax="44444"
           aria-valuenow="3000">
           <div id="temperatureSliderFill" class="ios-vertical-slider-fill"></div>
-          <div id="temperatureSliderLabel" class="ios-vertical-slider-icon">color temperature(3000K)</div>
+          <div id="temperatureSliderLabel" class="ios-vertical-slider-icon">3000K</div>
         </button>
       </div>
       <button id="speedSlider" class="ios-vertical-slider speed-slider" type="button" role="slider" aria-label="Animation speed"
         aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="50" aria-valuenow="1">
         <div id="speedSliderFill" class="ios-vertical-slider-fill"></div>
-        <div id="speedSliderLabel" class="ios-vertical-slider-icon">speed(1x)</div>
+        <div id="speedSliderLabel" class="ios-vertical-slider-icon">speed</div>
       </button>
     </div>
     <div class="parameter-panel">
@@ -437,9 +493,22 @@
         <button id="classicPresetButton" class="preset-button" type="button">Classic Lorenz</button>
       </div>
     </div>
-    <div id="hint">Space: toggle UI · Enter: green flow <br />← →: temperature · ↑ ↓: speed · Wheel / +/-: zoom</div>
+    <div id="hint">
+      <div class="hint-grid">
+        <div class="hint-label">toggle UI</div>
+        <div class="hint-keys"><span class="hint-key">Space</span></div>
+        <div class="hint-label">green flow</div>
+        <div class="hint-keys"><span class="hint-key">Enter</span></div>
+        <div class="hint-label">temperature <span id="hintTemperatureValue" class="hint-value">(3000K)</span></div>
+        <div class="hint-keys"><span class="hint-key">&larr;</span><span class="hint-key">&rarr;</span></div>
+        <div class="hint-label">speed</div>
+        <div class="hint-keys"><span class="hint-key">&uarr;</span><span class="hint-key">&darr;</span></div>
+        <div class="hint-label">zoom <span id="hintZoomValue" class="hint-value">(1x)</span></div>
+        <div class="hint-keys"><span class="hint-key">Wheel</span><span class="hint-key">+/-</span></div>
+      </div>
+    </div>
   </div>
-  <button id="menuToggleButton" class="menu-button hidden" type="button">show menu</button>
+  <button id="menuToggleButton" class="menu-button hidden hiddenMenu" type="button"></button>
 </body>
 <script>
   const app = document.getElementById("app")
@@ -454,7 +523,8 @@
   const hideMenuButton = document.getElementById("hideMenuButton")
   const menuToggleButton = document.getElementById("menuToggleButton")
   const classicPresetButton = document.getElementById("classicPresetButton")
-  const hintEl = document.getElementById("hint")
+  const hintTemperatureValue = document.getElementById("hintTemperatureValue")
+  const hintZoomValue = document.getElementById("hintZoomValue")
   const canvas = document.getElementById("attractor")
   const ctx = canvas.getContext("2d")
   const parameterInputs = {
@@ -877,7 +947,7 @@
     const fillWidth = Math.max(0, temperatureToProgress(value) * 100)
 
     temperatureSliderFill.style.setProperty("--fill-width", fillWidth + "%")
-    temperatureSliderLabel.textContent = `color temperature(${value}K)`
+    temperatureSliderLabel.textContent = `${value}K`
     temperatureSlider.setAttribute("aria-valuenow", value.toString())
     temperatureSlider.setAttribute("aria-valuetext", value + " kelvin")
   }
@@ -891,7 +961,7 @@
       : formattedSpeed + "x"
 
     speedSliderFill.style.setProperty("--fill-width", fillWidth + "%")
-    speedSliderLabel.textContent = `speed(${speedValueText})`
+    speedSliderLabel.textContent = "speed"
     speedSlider.setAttribute("aria-valuenow", Number(speedMultiplier.toFixed(3)).toString())
     speedSlider.setAttribute("aria-valuetext", speedValueText)
   }
@@ -1120,7 +1190,8 @@
     const k = Number(slider.value)
     const rgb = kelvinToRGB(k)
 
-    hintEl.innerHTML = `Space: toggle UI · Enter: green flow <br />← →: temperature · ↑ ↓: speed · Wheel / +/-: zoom (${formatZoomMultiplier()}x)`
+    hintTemperatureValue.textContent = `(${k}K)`
+    hintZoomValue.textContent = `(${formatZoomMultiplier()}x)`
     syncAttractor(k, rgb)
     updateTemperatureSliderUI()
     updateSpeedSliderUI()
