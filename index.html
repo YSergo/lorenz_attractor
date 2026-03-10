@@ -564,8 +564,8 @@
   const baseTemperatureStep = 1
   const temperatureStepAccelerationInterval = 60
   const maxTemperatureStepMultiplier = 1000
-  const minZoomMultiplier = 0.03
-  const maxZoomMultiplier = 20
+  const minZoomMultiplier = 0.01
+  const maxZoomMultiplier = 1000
   const baseTemperature = Number(slider.value)
   const baseNormalized = (baseTemperature - 1000) / 9000
   const baseScale = 11 + baseNormalized * 18
