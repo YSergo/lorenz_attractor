@@ -30,11 +30,16 @@
   #app {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-end;
     text-align: center;
-    position: relative;
+    position: fixed;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
     z-index: 1;
-    width: min(92vw, 680px);
+    width: min(calc(100vw - 28px), 420px);
+    max-height: calc(100vh - 28px);
+    overflow-y: auto;
     box-sizing: border-box;
     gap: 14px;
   }
@@ -234,6 +239,17 @@
   }
 
   @media (max-width: 640px) {
+    #app {
+      align-items: center;
+      position: relative;
+      top: auto;
+      right: auto;
+      transform: none;
+      width: min(92vw, 680px);
+      max-height: none;
+      overflow-y: visible;
+    }
+
     .controls {
       width: 100%;
       max-width: 520px;
@@ -280,6 +296,7 @@
   }
 
   #hint {
+    align-self: center;
     font-size: 12px;
     user-select: none;
     color: rgba(255, 255, 255, 0.5);
@@ -397,6 +414,8 @@
   let dragOffsetY = 0
   let lastPointerX = 0
   let lastPointerY = 0
+  let activeSpeedPointerId = null
+  let activeTemperaturePointerId = null
 
   const state = {
     x: 0.08,
@@ -949,14 +968,20 @@
     dragOffsetY = 0
   })
   speedSlider.addEventListener("pointerdown", (event) => {
+    activeSpeedPointerId = event.pointerId
     speedSlider.setPointerCapture(event.pointerId)
     applySpeedFromPointer(event.clientX)
   })
   temperatureSlider.addEventListener("pointerdown", (event) => {
+    activeTemperaturePointerId = event.pointerId
     temperatureSlider.setPointerCapture(event.pointerId)
     applyTemperatureFromPointer(event.clientX)
   })
   speedSlider.addEventListener("pointermove", (event) => {
+    if (activeSpeedPointerId !== event.pointerId) {
+      return
+    }
+
     if (event.buttons === 0 && event.pointerType !== "touch") {
       return
     }
@@ -964,11 +989,41 @@
     applySpeedFromPointer(event.clientX)
   })
   temperatureSlider.addEventListener("pointermove", (event) => {
+    if (activeTemperaturePointerId !== event.pointerId) {
+      return
+    }
+
     if (event.buttons === 0 && event.pointerType !== "touch") {
       return
     }
 
     applyTemperatureFromPointer(event.clientX)
+  })
+  speedSlider.addEventListener("pointerup", (event) => {
+    if (activeSpeedPointerId === event.pointerId) {
+      activeSpeedPointerId = null
+    }
+  })
+  temperatureSlider.addEventListener("pointerup", (event) => {
+    if (activeTemperaturePointerId === event.pointerId) {
+      activeTemperaturePointerId = null
+    }
+  })
+  speedSlider.addEventListener("pointercancel", (event) => {
+    if (activeSpeedPointerId === event.pointerId) {
+      activeSpeedPointerId = null
+    }
+  })
+  temperatureSlider.addEventListener("pointercancel", (event) => {
+    if (activeTemperaturePointerId === event.pointerId) {
+      activeTemperaturePointerId = null
+    }
+  })
+  speedSlider.addEventListener("lostpointercapture", () => {
+    activeSpeedPointerId = null
+  })
+  temperatureSlider.addEventListener("lostpointercapture", () => {
+    activeTemperaturePointerId = null
   })
   speedSlider.addEventListener("keydown", (event) => {
     if (event.code === "ArrowUp" || event.code === "ArrowRight") {
