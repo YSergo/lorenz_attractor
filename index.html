@@ -272,8 +272,11 @@
   }
 
   .ios-vertical-slider:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.58);
-    outline-offset: 4px;
+    outline: none;
+  }
+
+  .ios-vertical-slider:focus {
+    outline: none;
   }
 
   .ios-vertical-slider-fill {
@@ -1586,11 +1589,13 @@
     activeSpeedPointerId = event.pointerId
     speedSlider.setPointerCapture(event.pointerId)
     applySpeedFromPointer(event.clientX)
+    speedSlider.blur()
   })
   temperatureSlider.addEventListener("pointerdown", (event) => {
     activeTemperaturePointerId = event.pointerId
     temperatureSlider.setPointerCapture(event.pointerId)
     applyTemperatureFromPointer(event.clientX)
+    temperatureSlider.blur()
   })
   speedSlider.addEventListener("pointermove", (event) => {
     if (activeSpeedPointerId !== event.pointerId) {
