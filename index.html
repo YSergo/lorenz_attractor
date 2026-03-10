@@ -49,6 +49,7 @@
     box-sizing: border-box;
     gap: 14px;
     touch-action: none;
+    opacity: 0;
   }
 
   #attractor {
@@ -511,7 +512,7 @@
     top: 14px;
     right: 14px;
     z-index: 2;
-    backdrop-filter: blur(16px);
+    opacity: 0;
   }
 
 </style>
@@ -633,6 +634,7 @@
   const speedSliderCurveExponent = 1
   const defaultSpeedMultiplier = 1
   const speedIntroDuration = 2200
+  const menuIntroMinOpacity = 0.3
   const baseTemperatureStep = 1
   const temperatureStepAccelerationInterval = 60
   const maxTemperatureStepMultiplier = 1000
@@ -660,6 +662,7 @@
   let lastPointerY = 0
   let speedIntroActive = true
   let speedIntroStartedAt = null
+  let menuIntroActive = true
   let activeTemperatureKey = null
   let temperatureKeyHoldStartedAt = 0
   let activeSpeedPointerId = null
@@ -881,6 +884,8 @@
     if (!uiHidden) {
       updateAnchor()
     }
+
+    updateMenuIntroOpacity()
   }
 
   function clearMenuToggleGlow() {
@@ -900,6 +905,46 @@
       menuToggleButton.classList.remove("is-glowing")
       menuToggleGlowTimeoutId = null
     }, 1000)
+  }
+
+  function getMenuIntroOpacity() {
+    if (!menuIntroActive) {
+      return 1
+    }
+
+    const startProgress = speedMultiplierToProgress(minActiveSpeedMultiplier)
+    const endProgress = speedMultiplierToProgress(defaultSpeedMultiplier)
+    const currentProgress = speedMultiplierToProgress(speedMultiplier)
+
+    if (endProgress <= startProgress) {
+      return 1
+    }
+
+    const normalizedProgress = clamp(
+      (currentProgress - startProgress) / (endProgress - startProgress),
+      0,
+      1
+    )
+
+    return menuIntroMinOpacity + (1 - menuIntroMinOpacity) * normalizedProgress
+  }
+
+  function finishMenuIntro() {
+    menuIntroActive = false
+    app.style.opacity = uiHidden ? "0" : "1"
+    menuToggleButton.style.opacity = uiHidden ? "1" : "0"
+  }
+
+  function updateMenuIntroOpacity() {
+    const introOpacity = getMenuIntroOpacity()
+    const opacityText = introOpacity.toFixed(3)
+
+    app.style.opacity = uiHidden ? "0" : opacityText
+    menuToggleButton.style.opacity = uiHidden ? opacityText : "0"
+
+    if (introOpacity >= 1) {
+      finishMenuIntro()
+    }
   }
 
   function updateGreenFlowButtonUI() {
@@ -1250,6 +1295,10 @@
     if (cancelIntro) {
       speedIntroActive = false
       speedIntroStartedAt = null
+
+      if (menuIntroActive) {
+        finishMenuIntro()
+      }
     }
 
     speedMultiplier = clampedValue > minSpeedMultiplier && clampedValue < minActiveSpeedMultiplier
@@ -1473,6 +1522,7 @@
     updateTemperatureSliderUI()
     updateSpeedSliderUI()
     updateAnchor()
+    updateMenuIntroOpacity()
   }
 
   function stepAttractor(iterations) {
