@@ -151,7 +151,7 @@
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.82);
+    color: rgba(255, 255, 255, 0.48);
     padding: 10px 16px;
     font: inherit;
     cursor: pointer;
@@ -167,6 +167,22 @@
     outline: none;
     border-color: rgba(255, 255, 255, 0.46);
     background: rgba(255, 255, 255, 0.14);
+  }
+
+  .preset-button.is-active {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.38);
+    color: rgba(255, 255, 255, 0.96);
+  }
+
+  .parameter-field.is-active span {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .parameter-field.is-active input {
+    border-color: rgba(255, 255, 255, 0.38);
+    background: rgba(255, 255, 255, 0.16);
+    color: rgba(255, 255, 255, 0.96);
   }
 
   .parameter-field {
@@ -466,6 +482,7 @@
   let greenBoost = false
   let greenFlowLocked = false
   let greenFlowHeld = false
+  let classicPresetActive = false
   let isDraggingAttractor = false
   let hasCustomAnchor = false
   let dragOffsetX = 0
@@ -588,6 +605,23 @@
     if (hasChanged) {
       update()
     }
+  }
+
+  function updateClassicPresetUI() {
+    classicPresetButton.classList.toggle("is-active", classicPresetActive)
+    classicPresetButton.setAttribute("aria-pressed", String(classicPresetActive))
+    parameterInputs.sigma.closest(".parameter-field")?.classList.toggle("is-active", classicPresetActive)
+    parameterInputs.rho.closest(".parameter-field")?.classList.toggle("is-active", classicPresetActive)
+    parameterInputs.beta.closest(".parameter-field")?.classList.toggle("is-active", classicPresetActive)
+  }
+
+  function setClassicPresetActive(nextActive) {
+    if (classicPresetActive === nextActive) {
+      return
+    }
+
+    classicPresetActive = nextActive
+    updateClassicPresetUI()
   }
 
   function resetSimulation() {
@@ -830,6 +864,7 @@
     const max = Number(slider.max)
 
     slider.value = Math.round(clamp(nextValue, min, max)).toString()
+    setClassicPresetActive(false)
     clearDynamicOverrides()
     update()
   }
@@ -876,6 +911,10 @@
       return
     }
 
+    if (key === "sigma" || key === "rho" || key === "beta") {
+      setClassicPresetActive(false)
+    }
+
     if (key === "x" || key === "y" || key === "z") {
       initialConditions[key] = nextValue
     } else {
@@ -889,6 +928,7 @@
   }
 
   function applyClassicLorenzPreset() {
+    setClassicPresetActive(true)
     initialConditions.x = 0.08
     initialConditions.y = 0
     initialConditions.z = 0
@@ -908,6 +948,15 @@
 
     resetSimulation()
     update()
+  }
+
+  function handleClassicPresetButtonClick() {
+    if (classicPresetActive) {
+      setClassicPresetActive(false)
+      return
+    }
+
+    applyClassicLorenzPreset()
   }
 
   function applySpeedFromPointer(clientX) {
@@ -1003,9 +1052,10 @@
   menuToggleButton.addEventListener("click", () => {
     setUiHidden(false)
   })
-  classicPresetButton.addEventListener("click", applyClassicLorenzPreset)
+  classicPresetButton.addEventListener("click", handleClassicPresetButtonClick)
 
   slider.addEventListener("input", () => {
+    setClassicPresetActive(false)
     clearDynamicOverrides()
     update()
   })
@@ -1149,6 +1199,7 @@
 
   resizeCanvas()
   updateGreenFlowButtonUI()
+  updateClassicPresetUI()
   update()
   animate()
 
