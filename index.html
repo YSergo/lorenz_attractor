@@ -84,7 +84,7 @@
     border-color: rgba(255, 255, 255, 0.24);
   }
 
-  .menu-button:focus {
+  .menu-button:focus-visible {
     outline: none;
     border-color: rgba(255, 255, 255, 0.46);
     background: rgba(255, 255, 255, 0.14);
@@ -163,7 +163,7 @@
     border-color: rgba(255, 255, 255, 0.24);
   }
 
-  .preset-button:focus {
+  .preset-button:focus-visible {
     outline: none;
     border-color: rgba(255, 255, 255, 0.46);
     background: rgba(255, 255, 255, 0.14);
@@ -400,7 +400,7 @@
         </button>
       </div>
       <button id="speedSlider" class="ios-vertical-slider speed-slider" type="button" role="slider" aria-label="Animation speed"
-        aria-orientation="horizontal" aria-valuemin="0.1" aria-valuemax="10" aria-valuenow="1">
+        aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="50" aria-valuenow="1">
         <div id="speedSliderFill" class="ios-vertical-slider-fill"></div>
         <div id="speedSliderLabel" class="ios-vertical-slider-icon">speed(1x)</div>
       </button>
@@ -465,8 +465,15 @@
     rho: document.getElementById("paramRho"),
     beta: document.getElementById("paramBeta"),
   }
-  const minSpeedMultiplier = 0.1
-  const maxSpeedMultiplier = 10
+  const minSpeedMultiplier = 0
+  const minActiveSpeedMultiplier = 0.003
+  const maxSpeedMultiplier = 50
+  const speedSliderEdgeThreshold = 0.002
+  const speedSliderStopZone = 0.012
+  const speedSliderCurveExponent = 1
+  const baseTemperatureStep = 1
+  const temperatureStepAccelerationInterval = 60
+  const maxTemperatureStepMultiplier = 1000
   const minZoomMultiplier = 0.03
   const maxZoomMultiplier = 20
   const baseTemperature = Number(slider.value)
@@ -489,6 +496,8 @@
   let dragOffsetY = 0
   let lastPointerX = 0
   let lastPointerY = 0
+  let activeTemperatureKey = null
+  let temperatureKeyHoldStartedAt = 0
   let activeSpeedPointerId = null
   let activeTemperaturePointerId = null
 
@@ -596,7 +605,7 @@
   }
 
   function syncGreenFlowState() {
-    const nextGreenBoost = greenFlowLocked || greenFlowHeld
+    const nextGreenBoost = greenFlowHeld ? !greenFlowLocked : greenFlowLocked
     const hasChanged = greenBoost !== nextGreenBoost
 
     greenBoost = nextGreenBoost
@@ -792,25 +801,50 @@
   }
 
   function speedMultiplierToProgress(multiplier) {
-    const minLog = Math.log(minSpeedMultiplier)
-    const maxLog = Math.log(maxSpeedMultiplier)
-    const currentLog = Math.log(clamp(multiplier, minSpeedMultiplier, maxSpeedMultiplier))
+    const clampedMultiplier = clamp(multiplier, minSpeedMultiplier, maxSpeedMultiplier)
 
-    return (currentLog - minLog) / (maxLog - minLog)
+    if (clampedMultiplier <= minSpeedMultiplier) {
+      return 0
+    }
+
+    const minLog = Math.log(minActiveSpeedMultiplier)
+    const maxLog = Math.log(maxSpeedMultiplier)
+    const currentLog = Math.log(clamp(clampedMultiplier, minActiveSpeedMultiplier, maxSpeedMultiplier))
+    const normalizedValue = (currentLog - minLog) / (maxLog - minLog)
+
+    return speedSliderStopZone + (1 - speedSliderStopZone) * normalizedValue
   }
 
   function progressToSpeedMultiplier(progress) {
-    const minLog = Math.log(minSpeedMultiplier)
-    const maxLog = Math.log(maxSpeedMultiplier)
     const safeProgress = clamp(progress, 0, 1)
 
-    return Math.exp(minLog + (maxLog - minLog) * safeProgress)
+    if (safeProgress <= speedSliderStopZone) {
+      return minSpeedMultiplier
+    }
+
+    const normalizedProgress = (safeProgress - speedSliderStopZone) / (1 - speedSliderStopZone)
+    const minLog = Math.log(minActiveSpeedMultiplier)
+    const maxLog = Math.log(maxSpeedMultiplier)
+
+    return Math.exp(minLog + (maxLog - minLog) * Math.pow(normalizedProgress, speedSliderCurveExponent))
   }
 
   function formatSpeedMultiplier() {
-    return speedMultiplier >= 1
-      ? Number(speedMultiplier.toFixed(1)).toString()
-      : Number(speedMultiplier.toFixed(2)).toString()
+    if (speedMultiplier <= minSpeedMultiplier) {
+      return "0"
+    }
+
+    if (speedMultiplier <= minActiveSpeedMultiplier) {
+      return "min"
+    }
+
+    const progress = speedMultiplierToProgress(speedMultiplier)
+
+    if (progress >= 1 - speedSliderEdgeThreshold) {
+      return "max"
+    }
+
+    return Math.max(0.01, speedMultiplier).toFixed(2)
   }
 
   function formatZoomMultiplier() {
@@ -847,16 +881,44 @@
   function updateSpeedSliderUI() {
     const progress = speedMultiplierToProgress(speedMultiplier)
     const fillWidth = Math.max(0, progress * 100)
+    const formattedSpeed = formatSpeedMultiplier()
+    const speedValueText = formattedSpeed === "min" || formattedSpeed === "max"
+      ? formattedSpeed
+      : formattedSpeed + "x"
 
     speedSliderFill.style.setProperty("--fill-width", fillWidth + "%")
-    speedSliderLabel.textContent = `speed(${formatSpeedMultiplier()}x)`
-    speedSlider.setAttribute("aria-valuenow", speedMultiplier.toFixed(2))
-    speedSlider.setAttribute("aria-valuetext", formatSpeedMultiplier() + "x")
+    speedSliderLabel.textContent = `speed(${speedValueText})`
+    speedSlider.setAttribute("aria-valuenow", Number(speedMultiplier.toFixed(3)).toString())
+    speedSlider.setAttribute("aria-valuetext", speedValueText)
   }
 
   function setSpeedMultiplier(nextValue) {
-    speedMultiplier = clamp(nextValue, minSpeedMultiplier, maxSpeedMultiplier)
+    const previousSpeedMultiplier = speedMultiplier
+    const clampedValue = clamp(nextValue, minSpeedMultiplier, maxSpeedMultiplier)
+
+    speedMultiplier = clampedValue > minSpeedMultiplier && clampedValue < minActiveSpeedMultiplier
+      ? minActiveSpeedMultiplier
+      : clampedValue
+
+    if (previousSpeedMultiplier <= minSpeedMultiplier && speedMultiplier > minSpeedMultiplier) {
+      resetSimulation()
+    }
+
     update()
+  }
+
+  function nudgeSpeedMultiplier(direction) {
+    if (direction > 0) {
+      setSpeedMultiplier(speedMultiplier <= minSpeedMultiplier ? minActiveSpeedMultiplier : speedMultiplier * 1.08)
+      return
+    }
+
+    if (speedMultiplier <= minActiveSpeedMultiplier) {
+      setSpeedMultiplier(minSpeedMultiplier)
+      return
+    }
+
+    setSpeedMultiplier(speedMultiplier / 1.08)
   }
 
   function setTemperature(nextValue) {
@@ -867,6 +929,51 @@
     setClassicPresetActive(false)
     clearDynamicOverrides()
     update()
+  }
+
+  function getTemperatureStepForKey(code, isRepeat) {
+    const now = performance.now()
+
+    if (activeTemperatureKey !== code) {
+      activeTemperatureKey = code
+      temperatureKeyHoldStartedAt = now
+      return baseTemperatureStep
+    }
+
+    if (!isRepeat) {
+      return baseTemperatureStep
+    }
+
+    const heldDuration = now - temperatureKeyHoldStartedAt
+    const accelerationStage = Math.floor(heldDuration / temperatureStepAccelerationInterval)
+    const stepMultiplier = Math.min(
+      maxTemperatureStepMultiplier,
+      1 + accelerationStage * accelerationStage,
+    )
+
+    return baseTemperatureStep * stepMultiplier
+  }
+
+  function releaseTemperatureKey(code) {
+    if (activeTemperatureKey !== code) {
+      return
+    }
+
+    activeTemperatureKey = null
+    temperatureKeyHoldStartedAt = 0
+  }
+
+  function nudgeTemperatureFromKey(code, isRepeat) {
+    const direction = code === "ArrowRight" ? 1 : -1
+    const step = getTemperatureStepForKey(code, isRepeat)
+
+    setTemperature(Number(slider.value) + direction * step)
+  }
+
+  function blurSliderFocus() {
+    if (document.activeElement === speedSlider || document.activeElement === temperatureSlider) {
+      document.activeElement.blur()
+    }
   }
 
   function setZoomMultiplier(nextValue) {
@@ -1045,6 +1152,7 @@
   greenFlowButton.addEventListener("click", () => {
     greenFlowLocked = !greenFlowLocked
     syncGreenFlowState()
+    greenFlowButton.blur()
   })
   hideMenuButton.addEventListener("click", () => {
     setUiHidden(true)
@@ -1174,28 +1282,41 @@
   speedSlider.addEventListener("keydown", (event) => {
     if (event.code === "ArrowUp" || event.code === "ArrowRight") {
       event.preventDefault()
-      setSpeedMultiplier(speedMultiplier * 1.08)
+      blurSliderFocus()
+      nudgeSpeedMultiplier(1)
       return
     }
 
     if (event.code === "ArrowDown" || event.code === "ArrowLeft") {
       event.preventDefault()
-      setSpeedMultiplier(speedMultiplier / 1.08)
+      blurSliderFocus()
+      nudgeSpeedMultiplier(-1)
     }
   })
   temperatureSlider.addEventListener("keydown", (event) => {
     if (event.code === "ArrowRight") {
       event.preventDefault()
-      setTemperature(Number(slider.value) + 100)
+      blurSliderFocus()
+      nudgeTemperatureFromKey(event.code, event.repeat)
       return
     }
 
     if (event.code === "ArrowLeft") {
       event.preventDefault()
-      setTemperature(Number(slider.value) - 100)
+      blurSliderFocus()
+      nudgeTemperatureFromKey(event.code, event.repeat)
+    }
+  })
+  temperatureSlider.addEventListener("keyup", (event) => {
+    if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
+      releaseTemperatureKey(event.code)
     }
   })
   window.addEventListener("resize", resizeCanvas)
+  window.addEventListener("blur", () => {
+    activeTemperatureKey = null
+    temperatureKeyHoldStartedAt = 0
+  })
 
   resizeCanvas()
   updateGreenFlowButtonUI()
@@ -1210,24 +1331,14 @@
 
     if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
       event.preventDefault()
-
-      const direction = event.code === "ArrowRight" ? 100 : -100
-      const nextValue = Number(slider.value) + direction
-      const min = Number(slider.min)
-      const max = Number(slider.max)
-
-      slider.value = Math.min(max, Math.max(min, nextValue))
-
-      update()
+      nudgeTemperatureFromKey(event.code, event.repeat)
 
       return
     }
 
     if (event.code === "ArrowUp" || event.code === "ArrowDown") {
       event.preventDefault()
-
-      const factor = event.code === "ArrowUp" ? 1.08 : 1 / 1.08
-      setSpeedMultiplier(speedMultiplier * factor)
+      nudgeSpeedMultiplier(event.code === "ArrowUp" ? 1 : -1)
 
       return
     }
@@ -1250,27 +1361,30 @@
     }
   })
 
-  document.addEventListener("keydown", (event) => {
-    if (event.defaultPrevented || isEditableTarget(event.target)) {
+  window.addEventListener("keydown", (event) => {
+    if (event.code !== "Enter" || greenFlowHeld) {
       return
     }
 
-    if (event.code === "Enter" && !greenFlowHeld) {
-      greenFlowHeld = true
-      syncGreenFlowState()
-    }
-  })
+    blurSliderFocus()
+    event.preventDefault()
+    greenFlowHeld = true
+    syncGreenFlowState()
+  }, true)
 
-  document.addEventListener("keyup", (event) => {
-    if (event.defaultPrevented || isEditableTarget(event.target)) {
+  window.addEventListener("keyup", (event) => {
+    if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
+      releaseTemperatureKey(event.code)
+    }
+
+    if (event.code !== "Enter" || !greenFlowHeld) {
       return
     }
 
-    if (event.code === "Enter" && greenFlowHeld) {
-      greenFlowHeld = false
-      syncGreenFlowState()
-    }
-  })
+    event.preventDefault()
+    greenFlowHeld = false
+    syncGreenFlowState()
+  }, true)
 </script>
 
 </html>
