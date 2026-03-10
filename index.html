@@ -471,6 +471,8 @@
   const speedSliderEdgeThreshold = 0.002
   const speedSliderStopZone = 0.012
   const speedSliderCurveExponent = 1
+  const defaultSpeedMultiplier = 1
+  const speedIntroDuration = 2200
   const baseTemperatureStep = 1
   const temperatureStepAccelerationInterval = 60
   const maxTemperatureStepMultiplier = 1000
@@ -484,7 +486,7 @@
   let height = 0
   let pixelRatio = 1
   let uiHidden = false
-  let speedMultiplier = 1
+  let speedMultiplier = minActiveSpeedMultiplier
   let zoomMultiplier = 1
   let greenBoost = false
   let greenFlowLocked = false
@@ -496,6 +498,8 @@
   let dragOffsetY = 0
   let lastPointerX = 0
   let lastPointerY = 0
+  let speedIntroActive = true
+  let speedIntroStartedAt = null
   let activeTemperatureKey = null
   let temperatureKeyHoldStartedAt = 0
   let activeSpeedPointerId = null
@@ -892,9 +896,14 @@
     speedSlider.setAttribute("aria-valuetext", speedValueText)
   }
 
-  function setSpeedMultiplier(nextValue) {
+  function setSpeedMultiplier(nextValue, { cancelIntro = true } = {}) {
     const previousSpeedMultiplier = speedMultiplier
     const clampedValue = clamp(nextValue, minSpeedMultiplier, maxSpeedMultiplier)
+
+    if (cancelIntro) {
+      speedIntroActive = false
+      speedIntroStartedAt = null
+    }
 
     speedMultiplier = clampedValue > minSpeedMultiplier && clampedValue < minActiveSpeedMultiplier
       ? minActiveSpeedMultiplier
@@ -919,6 +928,33 @@
     }
 
     setSpeedMultiplier(speedMultiplier / 1.08)
+  }
+
+  function advanceSpeedIntro(timestamp) {
+    if (!speedIntroActive) {
+      return
+    }
+
+    if (!Number.isFinite(timestamp)) {
+      return
+    }
+
+    if (speedIntroStartedAt === null) {
+      speedIntroStartedAt = timestamp
+    }
+
+    const progress = clamp((timestamp - speedIntroStartedAt) / speedIntroDuration, 0, 1)
+    const easedProgress = Math.pow(progress, 20)
+    const nextSpeed = minActiveSpeedMultiplier
+      + (defaultSpeedMultiplier - minActiveSpeedMultiplier) * easedProgress
+
+    setSpeedMultiplier(nextSpeed, { cancelIntro: false })
+
+    if (progress >= 1) {
+      speedIntroActive = false
+      speedIntroStartedAt = null
+      setSpeedMultiplier(defaultSpeedMultiplier, { cancelIntro: false })
+    }
   }
 
   function setTemperature(nextValue) {
@@ -1139,7 +1175,8 @@
     ctx.shadowBlur = 0
   }
 
-  function animate() {
+  function animate(timestamp) {
+    advanceSpeedIntro(timestamp)
     stepAttractor(state.speed)
     requestAnimationFrame(animate)
   }
@@ -1322,7 +1359,7 @@
   updateGreenFlowButtonUI()
   updateClassicPresetUI()
   update()
-  animate()
+  requestAnimationFrame(animate)
 
   document.addEventListener("keydown", (event) => {
     if (event.defaultPrevented || isEditableTarget(event.target)) {
