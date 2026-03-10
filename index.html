@@ -61,6 +61,41 @@
     width: min(88vw, 420px);
   }
 
+  .menu-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    width: min(88vw, 420px);
+  }
+
+  .menu-button {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.82);
+    padding: 10px 16px;
+    font: inherit;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+
+  .menu-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.24);
+  }
+
+  .menu-button:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.46);
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .menu-button.is-active {
+    background: rgba(95, 255, 146, 0.16);
+    border-color: rgba(95, 255, 146, 0.42);
+    color: rgba(191, 255, 208, 0.96);
+  }
+
   .temperature-control {
     display: flex;
     flex-direction: column;
@@ -108,7 +143,7 @@
 
   .parameter-actions {
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
     margin-top: 14px;
   }
 
@@ -258,6 +293,11 @@
       gap: 14px;
     }
 
+    .menu-toolbar {
+      width: 100%;
+      max-width: 520px;
+    }
+
     .temperature-control {
       width: 100%;
     }
@@ -305,6 +345,14 @@
     padding: 6px 20px;
   }
 
+  #menuToggleButton {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    backdrop-filter: blur(16px);
+  }
+
   @media (max-width: 480px) {
     .parameter-grid {
       grid-template-columns: 1fr;
@@ -320,6 +368,10 @@
 <body>
   <canvas id="attractor"></canvas>
   <div id="app">
+    <div class="menu-toolbar">
+      <button id="greenFlowButton" class="menu-button" type="button" aria-pressed="false">green flow</button>
+      <button id="hideMenuButton" class="menu-button" type="button">hide menu</button>
+    </div>
     <div class="controls">
       <div class="temperature-control">
         <input class="temperature-slider-input" type="range" min="100" max="44444" value="3000" id="slider" tabindex="-1"
@@ -371,6 +423,7 @@
     </div>
     <div id="hint">Space: toggle UI · Enter: green flow <br />← →: temperature · ↑ ↓: speed · Wheel / +/-: zoom</div>
   </div>
+  <button id="menuToggleButton" class="menu-button hidden" type="button">show menu</button>
 </body>
 <script>
   const app = document.getElementById("app")
@@ -381,6 +434,9 @@
   const speedSlider = document.getElementById("speedSlider")
   const speedSliderFill = document.getElementById("speedSliderFill")
   const speedSliderLabel = document.getElementById("speedSliderLabel")
+  const greenFlowButton = document.getElementById("greenFlowButton")
+  const hideMenuButton = document.getElementById("hideMenuButton")
+  const menuToggleButton = document.getElementById("menuToggleButton")
   const classicPresetButton = document.getElementById("classicPresetButton")
   const hintEl = document.getElementById("hint")
   const canvas = document.getElementById("attractor")
@@ -408,6 +464,8 @@
   let speedMultiplier = 1
   let zoomMultiplier = 1
   let greenBoost = false
+  let greenFlowLocked = false
+  let greenFlowHeld = false
   let isDraggingAttractor = false
   let hasCustomAnchor = false
   let dragOffsetX = 0
@@ -502,6 +560,34 @@
       target.isContentEditable ||
       target.closest("input, textarea, select, button, [contenteditable='true']") !== null
     )
+  }
+
+  function setUiHidden(nextHidden) {
+    uiHidden = nextHidden
+    app.classList.toggle("hidden", uiHidden)
+    menuToggleButton.classList.toggle("hidden", !uiHidden)
+
+    if (!uiHidden) {
+      updateAnchor()
+    }
+  }
+
+  function updateGreenFlowButtonUI() {
+    greenFlowButton.classList.toggle("is-active", greenBoost)
+    greenFlowButton.setAttribute("aria-pressed", String(greenBoost))
+    greenFlowButton.textContent = greenBoost ? "green flow on" : "green flow"
+  }
+
+  function syncGreenFlowState() {
+    const nextGreenBoost = greenFlowLocked || greenFlowHeld
+    const hasChanged = greenBoost !== nextGreenBoost
+
+    greenBoost = nextGreenBoost
+    updateGreenFlowButtonUI()
+
+    if (hasChanged) {
+      update()
+    }
   }
 
   function resetSimulation() {
@@ -907,6 +993,16 @@
       updateParameter(key, input)
     })
   })
+  greenFlowButton.addEventListener("click", () => {
+    greenFlowLocked = !greenFlowLocked
+    syncGreenFlowState()
+  })
+  hideMenuButton.addEventListener("click", () => {
+    setUiHidden(true)
+  })
+  menuToggleButton.addEventListener("click", () => {
+    setUiHidden(false)
+  })
   classicPresetButton.addEventListener("click", applyClassicLorenzPreset)
 
   slider.addEventListener("input", () => {
@@ -920,7 +1016,7 @@
     zoomAtPoint(zoomMultiplier * factor, event.clientX, event.clientY)
   }, { passive: false })
   window.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || (event.target instanceof Element && event.target.closest("#app"))) {
+    if (event.button !== 0 || (event.target instanceof Element && event.target.closest("#app, #menuToggleButton"))) {
       return
     }
 
@@ -1052,6 +1148,7 @@
   window.addEventListener("resize", resizeCanvas)
 
   resizeCanvas()
+  updateGreenFlowButtonUI()
   update()
   animate()
 
@@ -1098,15 +1195,7 @@
 
     if (event.code === "Space") {
       event.preventDefault()
-
-      uiHidden = !uiHidden
-
-      if (uiHidden) {
-        app.classList.add("hidden")
-      } else {
-        app.classList.remove("hidden")
-        updateAnchor()
-      }
+      setUiHidden(!uiHidden)
     }
   })
 
@@ -1115,9 +1204,9 @@
       return
     }
 
-    if (event.code === "Enter" && !greenBoost) {
-      greenBoost = true
-      update()
+    if (event.code === "Enter" && !greenFlowHeld) {
+      greenFlowHeld = true
+      syncGreenFlowState()
     }
   })
 
@@ -1126,9 +1215,9 @@
       return
     }
 
-    if (event.code === "Enter" && greenBoost) {
-      greenBoost = false
-      update()
+    if (event.code === "Enter" && greenFlowHeld) {
+      greenFlowHeld = false
+      syncGreenFlowState()
     }
   })
 </script>
