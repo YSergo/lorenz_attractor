@@ -34,6 +34,9 @@
     text-align: center;
     position: relative;
     z-index: 1;
+    width: min(92vw, 680px);
+    box-sizing: border-box;
+    gap: 14px;
   }
 
   #attractor {
@@ -43,6 +46,116 @@
     height: 100%;
     pointer-events: none;
     transform: rotate(180deg);
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    width: 100%;
+  }
+
+  .temperature-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .parameter-panel {
+    width: min(100%, 430px);
+    box-sizing: border-box;
+    padding: 14px 16px 16px;
+    border-radius: 24px;
+    background: rgba(0, 0, 0, 0.28);
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .parameter-panel-title {
+    margin: 0 0 12px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.48);
+  }
+
+  .parameter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 120px));
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .parameter-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 14px;
+  }
+
+  .preset-button {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.82);
+    padding: 10px 16px;
+    font: inherit;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+
+  .preset-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.24);
+  }
+
+  .preset-button:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.46);
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .parameter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    text-align: left;
+  }
+
+  .parameter-field span {
+    font-size: 10px;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.58);
+  }
+
+  .parameter-field input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.82);
+    padding: 8px 10px;
+    text-align: center;
+    font: inherit;
+  }
+
+  .parameter-field input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .parameter-field input::-webkit-outer-spin-button,
+  .parameter-field input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .parameter-field input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.46);
+    background: rgba(255, 255, 255, 0.12);
   }
 
   #slider {
@@ -90,11 +203,65 @@
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
   }
 
+  .ios-vertical-slider {
+    position: relative;
+    width: 188px;
+    height: 42px;
+    margin-bottom: 10px;
+    border: 0;
+    padding: 0;
+    border-radius: 34px;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 24px 48px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+    cursor: ew-resize;
+    touch-action: none;
+  }
+
+  .ios-vertical-slider-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--fill-width, 25%);
+    background: rgba(255, 255, 255, 0.52);
+  }
+
+  .ios-vertical-slider-icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    user-select: none;
+    pointer-events: none;
+    font-size: 22px;
+    color: rgba(18, 20, 24, 0.7);
+    mix-blend-mode: multiply;
+  }
+
   @media (max-width: 640px) {
+    .controls {
+      width: 100%;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .temperature-control {
+      width: 100%;
+    }
+
+    .parameter-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
     #slider {
       order: 4;
       margin-top: 18px;
-      width: min(92vw, 520px);
+      width: 100%;
+      max-width: 520px;
       height: 52px;
     }
 
@@ -112,16 +279,12 @@
     #slider::-webkit-slider-thumb {
       margin-top: -10px;
     }
-  }
 
-  #value {
-    margin-top: 0px;
-    font-size: 20px;
-    padding: 6px 20px;
-    backdrop-filter: blur(3px);
-    border-radius: 30px;
-    background: rgba(0, 0, 0, 0.308);
-    color: rgba(255, 255, 255, 0.5);
+    .ios-vertical-slider {
+      width: min(48vw, 176px);
+      height: 38px;
+      flex: 0 0 auto;
+    }
   }
 
   .hidden,
@@ -134,7 +297,6 @@
     font-size: 12px;
     user-select: none;
     color: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(3px);
     border-radius: 30px;
     background: rgba(0, 0, 0, 0.308);
     padding: 6px 20px;
@@ -144,16 +306,19 @@
     margin: 0;
     color: rgba(255, 255, 255, 0.499);
     font-size: 24px;
-    margin-bottom: 10px;
   }
 
   @media (max-width: 480px) {
+    .parameter-grid {
+      grid-template-columns: 1fr;
+    }
+
     #hint {
       display: none;
     }
 
     h1 {
-      margin-bottom: 10px;
+      margin-bottom: 0;
     }
   }
 </style>
@@ -162,17 +327,72 @@
   <canvas id="attractor"></canvas>
   <div id="app">
     <h1>Choose Color Temperature</h1>
-    <input type="range" min="1000" max="10000" value="3000" id="slider">
-    <div id='value'></div>
-    <div id="hint">Space: toggle UI · Enter: green flow <br />← →: temperature · ↑ ↓: speed </div>
+    <div class="controls">
+      <div class="temperature-control">
+        <input type="range" min="100" max="44444" value="3000" id="slider">
+      </div>
+      <button id="speedSlider" class="ios-vertical-slider" type="button" aria-label="Animation speed" aria-valuemin="0.1"
+        aria-valuemax="10" aria-valuenow="1">
+        <div id="speedSliderFill" class="ios-vertical-slider-fill"></div>
+        <div class="ios-vertical-slider-icon">speed</div>
+      </button>
+    </div>
+    <div class="parameter-panel">
+      <div class="parameter-panel-title">System variables</div>
+      <div class="parameter-grid">
+        <label class="parameter-field">
+          <span>sigma (σ)</span>
+          <input id="paramSigma" type="number" step="0.1" min="0.1" value="10" inputmode="decimal">
+        </label>
+        <label class="parameter-field">
+          <span>rho (ρ)</span>
+          <input id="paramRho" type="number" step="0.1" value="28" inputmode="decimal">
+        </label>
+        <label class="parameter-field">
+          <span>beta (β)</span>
+          <input id="paramBeta" type="number" step="0.01" min="0.01" value="2.67" inputmode="decimal">
+        </label>
+        <label class="parameter-field">
+          <span>x start</span>
+          <input id="paramX" type="number" step="0.01" value="0.08" inputmode="decimal">
+        </label>
+        <label class="parameter-field">
+          <span>y start</span>
+          <input id="paramY" type="number" step="0.01" value="0" inputmode="decimal">
+        </label>
+        <label class="parameter-field">
+          <span>z start</span>
+          <input id="paramZ" type="number" step="0.01" value="0" inputmode="decimal">
+        </label>
+      </div>
+      <div class="parameter-actions">
+        <button id="classicPresetButton" class="preset-button" type="button">Classic Lorenz</button>
+      </div>
+    </div>
+    <div id="hint">Space: toggle UI · Enter: green flow <br />← →: temperature · ↑ ↓: speed · Wheel / +/-: zoom</div>
   </div>
 </body>
 <script>
   const app = document.getElementById("app")
   const slider = document.getElementById("slider")
-  const valueEl = document.getElementById("value")
+  const speedSlider = document.getElementById("speedSlider")
+  const speedSliderFill = document.getElementById("speedSliderFill")
+  const classicPresetButton = document.getElementById("classicPresetButton")
+  const hintEl = document.getElementById("hint")
   const canvas = document.getElementById("attractor")
   const ctx = canvas.getContext("2d")
+  const parameterInputs = {
+    x: document.getElementById("paramX"),
+    y: document.getElementById("paramY"),
+    z: document.getElementById("paramZ"),
+    sigma: document.getElementById("paramSigma"),
+    rho: document.getElementById("paramRho"),
+    beta: document.getElementById("paramBeta"),
+  }
+  const minSpeedMultiplier = 0.1
+  const maxSpeedMultiplier = 10
+  const minZoomMultiplier = 0.03
+  const maxZoomMultiplier = 20
   const baseTemperature = Number(slider.value)
   const baseNormalized = (baseTemperature - 1000) / 9000
   const baseScale = 11 + baseNormalized * 18
@@ -182,7 +402,14 @@
   let pixelRatio = 1
   let uiHidden = false
   let speedMultiplier = 1
+  let zoomMultiplier = 1
   let greenBoost = false
+  let isDraggingAttractor = false
+  let hasCustomAnchor = false
+  let dragOffsetX = 0
+  let dragOffsetY = 0
+  let lastPointerX = 0
+  let lastPointerY = 0
 
   const state = {
     x: 0.08,
@@ -191,6 +418,7 @@
     hue: 30,
     stroke: "rgba(255, 224, 176, 0.28)",
     glow: "rgba(255, 224, 176, 0.18)",
+    temperatureScale: 14,
     scale: 14,
     speed: 2400,
     sigma: 10,
@@ -198,6 +426,89 @@
     beta: 8 / 3,
     anchorX: 0,
     anchorY: 0,
+    targetAnchorX: 0,
+    targetAnchorY: 0,
+  }
+
+  function getTemperatureDynamics(k) {
+    const normalized = (Number(k) - 1000) / 9000
+
+    return {
+      normalized,
+      sigma: 8 + normalized * 10,
+      rho: 18 + normalized * 22,
+      beta: 1.8 + normalized * 1.4,
+    }
+  }
+
+  function formatParameterValue(value, fractionDigits = 2) {
+    return Number(value.toFixed(fractionDigits)).toString()
+  }
+
+  const initialConditions = {
+    x: Number(parameterInputs.x.value),
+    y: Number(parameterInputs.y.value),
+    z: Number(parameterInputs.z.value),
+  }
+
+  const derivedDynamics = getTemperatureDynamics(slider.value)
+  const parameters = {
+    sigma: derivedDynamics.sigma,
+    rho: derivedDynamics.rho,
+    beta: derivedDynamics.beta,
+  }
+  const parameterOverrides = {
+    sigma: false,
+    rho: false,
+    beta: false,
+  }
+
+  parameterInputs.sigma.value = formatParameterValue(parameters.sigma)
+  parameterInputs.rho.value = formatParameterValue(parameters.rho)
+  parameterInputs.beta.value = formatParameterValue(parameters.beta)
+
+  state.x = initialConditions.x
+  state.y = initialConditions.y
+  state.z = initialConditions.z
+  state.sigma = parameters.sigma
+  state.rho = parameters.rho
+  state.beta = parameters.beta
+
+  function hasPosition(x, y) {
+    return x !== 0 || y !== 0
+  }
+
+  function getDefaultAnchorTarget() {
+    return {
+      x: width * 0.5,
+      y: height * 0.18,
+    }
+  }
+
+  function clearCanvas() {
+    ctx.clearRect(0, 0, width, height)
+    ctx.fillStyle = "rgba(0, 0, 0, 1)"
+    ctx.fillRect(0, 0, width, height)
+  }
+
+  function isEditableTarget(target) {
+    return target instanceof HTMLElement && (
+      target.isContentEditable ||
+      target.closest("input, textarea, select, button, [contenteditable='true']") !== null
+    )
+  }
+
+  function resetSimulation() {
+    state.x = initialConditions.x
+    state.y = initialConditions.y
+    state.z = initialConditions.z
+    clearCanvas()
+  }
+
+  function clearDynamicOverrides() {
+    parameterOverrides.sigma = false
+    parameterOverrides.rho = false
+    parameterOverrides.beta = false
   }
 
   function resizeCanvas() {
@@ -209,17 +520,62 @@
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
     ctx.fillStyle = "rgba(0, 0, 0, 0.08)"
     ctx.fillRect(0, 0, width, height)
+    lastPointerX = width * 0.5
+    lastPointerY = height * 0.5
     updateAnchor()
   }
 
   function updateAnchor() {
-    if (app.classList.contains("hidden")) {
+    if (isDraggingAttractor || hasCustomAnchor) {
       return
     }
 
-    const rect = app.getBoundingClientRect()
-    state.anchorX = rect.left + rect.width * 0.5
-    state.anchorY = height * 0.18
+    const defaultAnchor = getDefaultAnchorTarget()
+    state.targetAnchorX = defaultAnchor.x
+    state.targetAnchorY = defaultAnchor.y
+  }
+
+  function updateAnchorFromPointer(clientX, clientY) {
+    const scaleCompensation = (state.temperatureScale - baseScale) * 30
+
+    hasCustomAnchor = true
+    state.targetAnchorX = clamp(width - (clientX - dragOffsetX), 0, width)
+    state.targetAnchorY = height - (clientY - dragOffsetY) + scaleCompensation
+  }
+
+  function getCurrentAnchorPosition() {
+    const defaultAnchor = getDefaultAnchorTarget()
+    const hasAnchor = hasPosition(state.anchorX, state.anchorY)
+    const hasTargetAnchor = hasPosition(state.targetAnchorX, state.targetAnchorY)
+
+    if (hasAnchor) {
+      return {
+        x: state.anchorX,
+        y: state.anchorY,
+      }
+    }
+
+    if (hasTargetAnchor) {
+      return {
+        x: state.targetAnchorX,
+        y: state.targetAnchorY,
+      }
+    }
+
+    return {
+      x: defaultAnchor.x,
+      y: defaultAnchor.y,
+    }
+  }
+
+  function getVisibleAnchorPosition() {
+    const scaleCompensation = (state.temperatureScale - baseScale) * 30
+    const anchor = getCurrentAnchorPosition()
+
+    return {
+      x: width - anchor.x,
+      y: height - anchor.y + scaleCompensation,
+    }
   }
 
   function kelvinToRGB(k) {
@@ -274,7 +630,7 @@
   }
 
   function syncAttractor(k, rgb) {
-    const normalized = (Number(k) - 1000) / 9000
+    const { normalized, sigma, rho, beta } = getTemperatureDynamics(k)
     const { h } = rgbToHsl(rgb)
     const strokeHue = greenBoost ? 135 : h
     const glowHue = greenBoost ? 145 : h
@@ -282,27 +638,185 @@
     state.hue = h
     state.stroke = `hsla(${strokeHue}, 90%, ${greenBoost ? 58 : 65 - normalized * 18}%, ${greenBoost ? 0.34 : 0.28})`
     state.glow = `hsla(${glowHue}, 100%, ${greenBoost ? 60 : 70 - normalized * 14}%, ${greenBoost ? 0.24 : 0.18})`
-    state.scale = 11 + normalized * 18
+    state.temperatureScale = 11 + normalized * 18
+    state.scale = state.temperatureScale * zoomMultiplier
     state.speed = Math.round((800 + normalized * 3800) * speedMultiplier)
-    state.sigma = 8 + normalized * 10
-    state.rho = 18 + normalized * 22
-    state.beta = 1.8 + normalized * 1.4
+    state.sigma = parameterOverrides.sigma ? parameters.sigma : sigma
+    state.rho = parameterOverrides.rho ? parameters.rho : rho
+    state.beta = parameterOverrides.beta ? parameters.beta : beta
+
+    if (!parameterOverrides.sigma) {
+      parameters.sigma = sigma
+      parameterInputs.sigma.value = formatParameterValue(sigma)
+    }
+
+    if (!parameterOverrides.rho) {
+      parameters.rho = rho
+      parameterInputs.rho.value = formatParameterValue(rho)
+    }
+
+    if (!parameterOverrides.beta) {
+      parameters.beta = beta
+      parameterInputs.beta.value = formatParameterValue(beta)
+    }
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value))
+  }
+
+  function speedMultiplierToProgress(multiplier) {
+    const minLog = Math.log(minSpeedMultiplier)
+    const maxLog = Math.log(maxSpeedMultiplier)
+    const currentLog = Math.log(clamp(multiplier, minSpeedMultiplier, maxSpeedMultiplier))
+
+    return (currentLog - minLog) / (maxLog - minLog)
+  }
+
+  function progressToSpeedMultiplier(progress) {
+    const minLog = Math.log(minSpeedMultiplier)
+    const maxLog = Math.log(maxSpeedMultiplier)
+    const safeProgress = clamp(progress, 0, 1)
+
+    return Math.exp(minLog + (maxLog - minLog) * safeProgress)
+  }
+
+  function formatSpeedMultiplier() {
+    return speedMultiplier >= 1
+      ? Number(speedMultiplier.toFixed(1)).toString()
+      : Number(speedMultiplier.toFixed(2)).toString()
+  }
+
+  function formatZoomMultiplier() {
+    return zoomMultiplier >= 1
+      ? Number(zoomMultiplier.toFixed(1)).toString()
+      : Number(zoomMultiplier.toFixed(2)).toString()
+  }
+
+  function updateSpeedSliderUI() {
+    const progress = speedMultiplierToProgress(speedMultiplier)
+    const fillWidth = Math.max(0, progress * 100)
+
+    speedSliderFill.style.setProperty("--fill-width", fillWidth + "%")
+    speedSlider.setAttribute("aria-valuenow", speedMultiplier.toFixed(2))
+    speedSlider.setAttribute("aria-valuetext", formatSpeedMultiplier() + "x")
+  }
+
+  function setSpeedMultiplier(nextValue) {
+    speedMultiplier = clamp(nextValue, minSpeedMultiplier, maxSpeedMultiplier)
+    update()
+  }
+
+  function setZoomMultiplier(nextValue) {
+    zoomMultiplier = clamp(nextValue, minZoomMultiplier, maxZoomMultiplier)
+    update()
+  }
+
+  function zoomAtPoint(nextValue, clientX = lastPointerX || width * 0.5, clientY = lastPointerY || height * 0.5) {
+    const nextZoom = clamp(nextValue, minZoomMultiplier, maxZoomMultiplier)
+
+    if (nextZoom === zoomMultiplier) {
+      return
+    }
+
+    const scaleCompensation = (state.temperatureScale - baseScale) * 30
+    const currentAnchor = getCurrentAnchorPosition()
+    const currentCenterX = width - currentAnchor.x
+    const currentCenterY = height - currentAnchor.y + scaleCompensation
+    const currentScale = state.temperatureScale * zoomMultiplier
+    const nextScale = state.temperatureScale * nextZoom
+    const scaleRatio = nextScale / currentScale
+    const nextCenterX = clientX - (clientX - currentCenterX) * scaleRatio
+    const nextCenterY = clientY - (clientY - currentCenterY) * scaleRatio
+
+    hasCustomAnchor = true
+    state.anchorX = width - nextCenterX
+    state.targetAnchorX = state.anchorX
+    state.anchorY = height + scaleCompensation - nextCenterY
+    state.targetAnchorY = state.anchorY
+    zoomMultiplier = nextZoom
+    update()
+  }
+
+  function updateParameter(key, input) {
+    if (input.value === "") {
+      return
+    }
+
+    const nextValue = Number(input.value)
+
+    if (!Number.isFinite(nextValue)) {
+      return
+    }
+
+    if (key === "x" || key === "y" || key === "z") {
+      initialConditions[key] = nextValue
+    } else {
+      parameterOverrides[key] = true
+      parameters[key] = nextValue
+      state[key] = nextValue
+    }
+
+    resetSimulation()
+    update()
+  }
+
+  function applyClassicLorenzPreset() {
+    initialConditions.x = 0.08
+    initialConditions.y = 0
+    initialConditions.z = 0
+    parameters.sigma = 10
+    parameters.rho = 28
+    parameters.beta = 8 / 3
+    parameterOverrides.sigma = true
+    parameterOverrides.rho = true
+    parameterOverrides.beta = true
+
+    parameterInputs.x.value = formatParameterValue(initialConditions.x)
+    parameterInputs.y.value = formatParameterValue(initialConditions.y)
+    parameterInputs.z.value = formatParameterValue(initialConditions.z)
+    parameterInputs.sigma.value = formatParameterValue(parameters.sigma)
+    parameterInputs.rho.value = formatParameterValue(parameters.rho)
+    parameterInputs.beta.value = formatParameterValue(parameters.beta, 4)
+
+    resetSimulation()
+    update()
+  }
+
+  function applySpeedFromPointer(clientX) {
+    const rect = speedSlider.getBoundingClientRect()
+    const progress = (clientX - rect.left) / rect.width
+    setSpeedMultiplier(progressToSpeedMultiplier(progress))
   }
 
   function update() {
     const k = Number(slider.value)
     const rgb = kelvinToRGB(k)
 
-    valueEl.textContent = k + "K"
+    hintEl.innerHTML = `Space: toggle UI · Enter: green flow <br />← →: temperature (${k}K) · ↑ ↓: speed (${formatSpeedMultiplier()}x) · Wheel / +/-: zoom (${formatZoomMultiplier()}x)`
     syncAttractor(k, rgb)
+    updateSpeedSliderUI()
     updateAnchor()
   }
 
   function stepAttractor(iterations) {
     const dt = 0.005
-    const centerX = state.anchorX || width * 0.5
-    const scaleCompensation = (state.scale - baseScale) * 30
-    const centerY = (state.anchorY || height * 0.17) - scaleCompensation
+    const defaultAnchor = getDefaultAnchorTarget()
+    const targetAnchor = hasPosition(state.targetAnchorX, state.targetAnchorY)
+      ? { x: state.targetAnchorX, y: state.targetAnchorY }
+      : defaultAnchor
+
+    if (!hasPosition(state.anchorX, state.anchorY)) {
+      state.anchorX = targetAnchor.x
+      state.anchorY = targetAnchor.y
+    }
+
+    state.anchorX += (targetAnchor.x - state.anchorX) * 0.08
+    state.anchorY += (targetAnchor.y - state.anchorY) * 0.08
+
+    const centerX = state.anchorX
+    const scaleCompensation = (state.temperatureScale - baseScale) * 30
+    const centerY = state.anchorY - scaleCompensation
 
     ctx.fillStyle = "rgba(0, 0, 0, 0.045)"
     ctx.fillRect(0, 0, width, height)
@@ -340,7 +854,94 @@
     requestAnimationFrame(animate)
   }
 
-  slider.addEventListener("input", update)
+  Object.entries(parameterInputs).forEach(([key, input]) => {
+    input.addEventListener("input", () => {
+      updateParameter(key, input)
+    })
+  })
+  classicPresetButton.addEventListener("click", applyClassicLorenzPreset)
+
+  slider.addEventListener("input", () => {
+    clearDynamicOverrides()
+    update()
+  })
+  window.addEventListener("wheel", (event) => {
+    event.preventDefault()
+
+    const factor = event.deltaY < 0 ? 1.08 : 1 / 1.08
+    zoomAtPoint(zoomMultiplier * factor, event.clientX, event.clientY)
+  }, { passive: false })
+  window.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || (event.target instanceof Element && event.target.closest("#app"))) {
+      return
+    }
+
+    lastPointerX = event.clientX
+    lastPointerY = event.clientY
+
+    const visibleAnchor = getVisibleAnchorPosition()
+
+    isDraggingAttractor = true
+    dragOffsetX = event.clientX - visibleAnchor.x
+    dragOffsetY = event.clientY - visibleAnchor.y
+    updateAnchorFromPointer(event.clientX, event.clientY)
+  })
+  window.addEventListener("pointermove", (event) => {
+    lastPointerX = event.clientX
+    lastPointerY = event.clientY
+
+    if (!isDraggingAttractor || (event.buttons & 1) !== 1) {
+      return
+    }
+
+    updateAnchorFromPointer(event.clientX, event.clientY)
+  })
+  window.addEventListener("pointerup", (event) => {
+    if (event.button !== 0) {
+      return
+    }
+
+    isDraggingAttractor = false
+    dragOffsetX = 0
+    dragOffsetY = 0
+  })
+  window.addEventListener("pointercancel", () => {
+    isDraggingAttractor = false
+    dragOffsetX = 0
+    dragOffsetY = 0
+  })
+  window.addEventListener("pointerleave", (event) => {
+    if ((event.buttons & 1) === 1) {
+      return
+    }
+
+    isDraggingAttractor = false
+    dragOffsetX = 0
+    dragOffsetY = 0
+  })
+  speedSlider.addEventListener("pointerdown", (event) => {
+    speedSlider.setPointerCapture(event.pointerId)
+    applySpeedFromPointer(event.clientX)
+  })
+  speedSlider.addEventListener("pointermove", (event) => {
+    if (event.buttons === 0 && event.pointerType !== "touch") {
+      return
+    }
+
+    applySpeedFromPointer(event.clientX)
+  })
+  speedSlider.addEventListener("keydown", (event) => {
+    if (event.code === "ArrowUp" || event.code === "ArrowRight") {
+      event.preventDefault()
+      setSpeedMultiplier(speedMultiplier * 1.08)
+      return
+    }
+
+    if (event.code === "ArrowDown" || event.code === "ArrowLeft") {
+      event.preventDefault()
+      setSpeedMultiplier(speedMultiplier / 1.08)
+    }
+  })
   window.addEventListener("resize", resizeCanvas)
 
   resizeCanvas()
@@ -348,10 +949,14 @@
   animate()
 
   document.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || isEditableTarget(event.target)) {
+      return
+    }
+
     if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
       event.preventDefault()
 
-      const direction = event.code === "ArrowRight" ? 1000 : -1000
+      const direction = event.code === "ArrowRight" ? 100 : -100
       const nextValue = Number(slider.value) + direction
       const min = Number(slider.min)
       const max = Number(slider.max)
@@ -366,10 +971,21 @@
     if (event.code === "ArrowUp" || event.code === "ArrowDown") {
       event.preventDefault()
 
-      const direction = event.code === "ArrowUp" ? 0.10 : -0.10
-      speedMultiplier = Math.min(3, Math.max(0.01, speedMultiplier + direction))
-      update()
+      const factor = event.code === "ArrowUp" ? 1.08 : 1 / 1.08
+      setSpeedMultiplier(speedMultiplier * factor)
 
+      return
+    }
+
+    if (event.key === "+" || event.key === "=") {
+      event.preventDefault()
+      zoomAtPoint(zoomMultiplier * 1.08)
+      return
+    }
+
+    if (event.key === "-" || event.key === "_") {
+      event.preventDefault()
+      zoomAtPoint(zoomMultiplier / 1.08)
       return
     }
 
@@ -388,6 +1004,10 @@
   })
 
   document.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || isEditableTarget(event.target)) {
+      return
+    }
+
     if (event.code === "Enter" && !greenBoost) {
       greenBoost = true
       update()
@@ -395,6 +1015,10 @@
   })
 
   document.addEventListener("keyup", (event) => {
+    if (event.defaultPrevented || isEditableTarget(event.target)) {
+      return
+    }
+
     if (event.code === "Enter" && greenBoost) {
       greenBoost = false
       update()
