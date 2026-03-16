@@ -959,10 +959,11 @@
 
   function setAnchorFromVisibleCenter(centerX, centerY) {
     const scaleCompensation = (state.temperatureScale - baseScale) * 30
+    const nextAnchorX = width - centerX
 
     hasCustomAnchor = true
-    state.anchorX = clamp(width - centerX, 0, width)
-    state.targetAnchorX = state.anchorX
+    state.anchorX = nextAnchorX
+    state.targetAnchorX = nextAnchorX
     state.anchorY = height + scaleCompensation - centerY
     state.targetAnchorY = state.anchorY
   }
@@ -1309,10 +1310,14 @@
 
   function updateAnchorFromPointer(clientX, clientY) {
     const scaleCompensation = (state.temperatureScale - baseScale) * 30
+    const nextAnchorX = width - (clientX - dragOffsetX)
+    const nextAnchorY = height - (clientY - dragOffsetY) + scaleCompensation
 
     hasCustomAnchor = true
-    state.targetAnchorX = clamp(width - (clientX - dragOffsetX), 0, width)
-    state.targetAnchorY = height - (clientY - dragOffsetY) + scaleCompensation
+    state.anchorX = nextAnchorX
+    state.targetAnchorX = nextAnchorX
+    state.anchorY = nextAnchorY
+    state.targetAnchorY = nextAnchorY
   }
 
   function getCurrentAnchorPosition() {
