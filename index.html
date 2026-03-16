@@ -283,7 +283,7 @@
   .parameter-slider:focus-within,
   .parameter-slider:focus-visible {
     outline: none;
-    border: 1px solid rgba(255, 255, 255, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.52);
   }
 
   .parameter-slider.is-classic-preset-highlighted {
@@ -333,7 +333,7 @@
     font-size: 14px;
   }
 
-  .parameter-slider-input[type="number"] {
+  .parameter-slider-input {
     appearance: textfield;
     -moz-appearance: textfield;
   }
@@ -653,68 +653,68 @@
       <div class="parameter-grid">
         <div class="parameter-field">
           <span>sigma (σ)</span>
-          <div class="parameter-slider" data-key="sigma" data-slider-min="0.1" data-slider-max="30" role="slider"
-            tabindex="0" aria-label="sigma" aria-orientation="horizontal" aria-valuemin="0.1" aria-valuemax="30"
+          <div class="parameter-slider" data-key="sigma" data-slider-min="0" data-slider-max="60" role="slider"
+            tabindex="0" aria-label="sigma" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="60"
             aria-valuenow="10">
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">10</div>
-            <input id="paramSigma" class="parameter-slider-input" type="number" step="0.1" min="0.1" value="10"
-              inputmode="decimal" tabindex="-1" aria-label="sigma">
+            <input id="paramSigma" class="parameter-slider-input" type="text" step="0.1" value="10"
+              inputmode="decimal" enterkeyhint="done" spellcheck="false" tabindex="-1" aria-label="sigma">
           </div>
         </div>
         <div class="parameter-field">
           <span>rho (ρ)</span>
-          <div class="parameter-slider" data-key="rho" data-slider-min="0" data-slider-max="60" role="slider"
-            tabindex="0" aria-label="rho" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="60"
+          <div class="parameter-slider" data-key="rho" data-slider-min="0" data-slider-max="130" role="slider"
+            tabindex="0" aria-label="rho" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="130"
             aria-valuenow="28">
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">28</div>
-            <input id="paramRho" class="parameter-slider-input" type="number" step="0.1" value="28"
-              inputmode="decimal" tabindex="-1" aria-label="rho">
+            <input id="paramRho" class="parameter-slider-input" type="text" step="0.1" value="28"
+              inputmode="decimal" enterkeyhint="done" spellcheck="false" tabindex="-1" aria-label="rho">
           </div>
         </div>
         <div class="parameter-field">
           <span>beta (β)</span>
-          <div class="parameter-slider" data-key="beta" data-slider-min="0.01" data-slider-max="6" role="slider"
-            tabindex="0" aria-label="beta" aria-orientation="horizontal" aria-valuemin="0.01" aria-valuemax="6"
+          <div class="parameter-slider" data-key="beta" data-slider-min="0" data-slider-max="9" role="slider"
+            tabindex="0" aria-label="beta" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="9"
             aria-valuenow="2.67">
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">2.67</div>
-            <input id="paramBeta" class="parameter-slider-input" type="number" step="0.01" min="0.01" value="2.67"
-              inputmode="decimal" tabindex="-1" aria-label="beta">
+            <input id="paramBeta" class="parameter-slider-input" type="text" step="0.01" value="2.67"
+              inputmode="decimal" enterkeyhint="done" spellcheck="false" tabindex="-1" aria-label="beta">
           </div>
         </div>
         <div class="parameter-field">
           <span>x start</span>
-          <div class="parameter-slider" data-key="x" data-slider-min="-20" data-slider-max="20" role="slider"
-            tabindex="0" aria-label="x start" aria-orientation="horizontal" aria-valuemin="-20" aria-valuemax="20"
+          <div class="parameter-slider" data-key="x" data-slider-min="-30" data-slider-max="30" role="slider"
+            tabindex="0" aria-label="x start" aria-orientation="horizontal" aria-valuemin="-30" aria-valuemax="30"
             aria-valuenow="0.08">
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">0.08</div>
-            <input id="paramX" class="parameter-slider-input" type="number" step="0.01" value="0.08"
-              inputmode="decimal" tabindex="-1" aria-label="x start">
+            <input id="paramX" class="parameter-slider-input" type="text" step="0.01" value="0.08"
+              inputmode="decimal" enterkeyhint="done" spellcheck="false" tabindex="-1" aria-label="x start">
           </div>
         </div>
         <div class="parameter-field">
           <span>y start</span>
-          <div class="parameter-slider" data-key="y" data-slider-min="-20" data-slider-max="20" role="slider"
-            tabindex="0" aria-label="y start" aria-orientation="horizontal" aria-valuemin="-20" aria-valuemax="20"
+          <div class="parameter-slider" data-key="y" data-slider-min="-30" data-slider-max="30" role="slider"
+            tabindex="0" aria-label="y start" aria-orientation="horizontal" aria-valuemin="-30" aria-valuemax="30"
             aria-valuenow="0">
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">0</div>
-            <input id="paramY" class="parameter-slider-input" type="number" step="0.01" value="0"
-              inputmode="decimal" tabindex="-1" aria-label="y start">
+            <input id="paramY" class="parameter-slider-input" type="text" step="0.01" value="0"
+              inputmode="decimal" enterkeyhint="done" spellcheck="false" tabindex="-1" aria-label="y start">
           </div>
         </div>
         <div class="parameter-field">
           <span>z start</span>
-          <div class="parameter-slider" data-key="z" data-slider-min="-20" data-slider-max="20" role="slider"
-            tabindex="0" aria-label="z start" aria-orientation="horizontal" aria-valuemin="-20" aria-valuemax="20"
+          <div class="parameter-slider" data-key="z" data-slider-min="-30" data-slider-max="30" role="slider"
+            tabindex="0" aria-label="z start" aria-orientation="horizontal" aria-valuemin="-30" aria-valuemax="30"
             aria-valuenow="0">
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">0</div>
-            <input id="paramZ" class="parameter-slider-input" type="number" step="0.01" value="0"
-              inputmode="decimal" tabindex="-1" aria-label="z start">
+            <input id="paramZ" class="parameter-slider-input" type="text" step="0.01" value="0"
+              inputmode="decimal" enterkeyhint="done" spellcheck="false" tabindex="-1" aria-label="z start">
           </div>
         </div>
       </div>
@@ -1454,6 +1454,20 @@
     return Number.isFinite(step) && step > 0 ? step : 1
   }
 
+  function normalizeParameterInputValue(value) {
+    return value.replaceAll(",", ".").trim()
+  }
+
+  function parseParameterInputValue(input) {
+    const normalizedValue = normalizeParameterInputValue(input.value)
+
+    if (normalizedValue === "") {
+      return NaN
+    }
+
+    return Number(normalizedValue)
+  }
+
   function formatParameterInputValue(input, value) {
     return Number(value.toFixed(getParameterInputFractionDigits(input))).toString()
   }
@@ -1493,6 +1507,20 @@
     }
   }
 
+  function getParameterRangeState(key, value) {
+    const { min, max } = getParameterSliderBounds(key)
+
+    if (value < min) {
+      return "low"
+    }
+
+    if (value > max) {
+      return "high"
+    }
+
+    return "in-range"
+  }
+
   function updateParameterSliderUI(key) {
     const sliderControl = parameterSliders[key]?.slider
     const sliderFill = parameterSliders[key]?.fill
@@ -1503,11 +1531,17 @@
     }
 
     const input = parameterInputs[key]
-    const inputValue = Number(input.value)
+    const inputValue = parseParameterInputValue(input)
     const currentValue = Number.isFinite(inputValue) ? inputValue : getStoredParameterValue(key)
     const { min, max } = getParameterSliderBounds(key)
+    const rangeState = getParameterRangeState(key, currentValue)
     const progress = max > min ? clamp((currentValue - min) / (max - min), 0, 1) : 0
-    const displayValue = input.value === "" ? formatParameterInputValue(input, currentValue) : input.value
+    const baseDisplayValue = input.value === "" ? formatParameterInputValue(input, currentValue) : input.value
+    const displayValue = rangeState === "high"
+      ? `${baseDisplayValue} ↑`
+      : rangeState === "low"
+        ? `${baseDisplayValue} ↓`
+        : baseDisplayValue
 
     sliderFill.style.setProperty("--fill-width", `${progress * 100}%`)
     sliderValue.textContent = displayValue
@@ -1524,7 +1558,7 @@
   }
 
   function nudgeParameterInput(key, input, direction, stepMultiplier = 1) {
-    const currentValue = Number(input.value)
+    const currentValue = parseParameterInputValue(input)
     const baseValue = Number.isFinite(currentValue) ? currentValue : getStoredParameterValue(key)
     const { min, max } = getParameterInputBounds(input)
     const fractionDigits = getParameterInputFractionDigits(input)
@@ -1577,9 +1611,13 @@
       return
     }
 
-    if (revert || input.value === "" || !Number.isFinite(Number(input.value))) {
+    const nextValue = parseParameterInputValue(input)
+
+    if (revert || input.value === "" || !Number.isFinite(nextValue)) {
       input.value = formatParameterInputValue(input, getStoredParameterValue(key))
       updateParameter(key, input)
+    } else {
+      input.value = formatParameterInputValue(input, nextValue)
     }
 
     sliderControl.classList.remove("is-editing")
@@ -2012,7 +2050,7 @@
       return
     }
 
-    const nextValue = Number(input.value)
+    const nextValue = parseParameterInputValue(input)
 
     if (!Number.isFinite(nextValue)) {
       return
