@@ -87,6 +87,7 @@
     color: rgba(255, 255, 255, 0.58);
     padding: 10px 16px;
     font: inherit;
+    font-size: 14px;
     cursor: pointer;
     transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
   }
@@ -214,10 +215,11 @@
   .preset-button {
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0);
     color: rgba(255, 255, 255, 0.48);
     padding: 10px 16px;
     font: inherit;
+    font-size: 14px;
     cursor: pointer;
     transition: background 120ms ease, border-color 120ms ease;
   }
@@ -231,20 +233,6 @@
     outline: none;
     border-color: rgba(255, 255, 255, 0.46);
     background: rgba(255, 255, 255, 0.14);
-  }
-
-  .preset-button.is-active {
-    background: rgba(255, 255, 255, 0.52);
-    color: rgba(18, 20, 24, 0.7);
-  }
-
-  .parameter-field.is-active span {
-    color: rgba(18, 20, 24, 0.7);
-  }
-
-  .parameter-field.is-active input {
-    background: rgba(255, 255, 255, 0.52);
-    color: rgba(18, 20, 24, 0.7);
   }
 
   .parameter-field {
@@ -261,35 +249,102 @@
     color: rgba(255, 255, 255, 0.58);
   }
 
-  .parameter-field input {
+  .parameter-slider {
+    position: relative;
     width: 100%;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+    touch-action: none;
+    cursor: pointer;
+  }
+
+  .parameter-slider-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--fill-width, 50%);
+    background: rgba(190, 190, 190, 0.42);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .parameter-slider:focus-within,
+  .parameter-slider:focus-visible {
+    outline: none;
+    border: 1px solid rgba(255, 255, 255, 0.46);
+  }
+
+  .parameter-slider.is-editing {
+    cursor: text;
+  }
+
+  .parameter-slider-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3ch;
+    /* padding: 0 6px; */
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 14px;
+    cursor: text;
+    white-space: nowrap;
+  }
+
+  .parameter-slider-input {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
     -webkit-user-select: text;
     user-select: text;
     box-sizing: border-box;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.08);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: rgba(255, 255, 255, 0.82);
     padding: 8px 10px;
     text-align: center;
-    font: inherit;
+    /* font: inherit; */
+    cursor: text;
+    opacity: 0;
+    pointer-events: none;
+    font-size: 14px;
   }
 
-  .parameter-field input[type="number"] {
+  .parameter-slider-input[type="number"] {
     appearance: textfield;
     -moz-appearance: textfield;
   }
 
-  .parameter-field input::-webkit-outer-spin-button,
-  .parameter-field input::-webkit-inner-spin-button {
+  .parameter-slider-input::-webkit-outer-spin-button,
+  .parameter-slider-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
 
-  .parameter-field input:focus {
+  .parameter-slider-input:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.46);
-    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .parameter-slider.is-editing .parameter-slider-value {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .parameter-slider.is-editing .parameter-slider-input {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .ios-vertical-slider {
@@ -420,10 +475,14 @@
       font-size: 9px;
     }
 
-    .parameter-field input {
-      padding: 7px 8px;
-      font-size: 16px;
+    .parameter-slider {
+      height: 40px;
       border-radius: 10px;
+    }
+
+    .parameter-slider-input {
+      padding: 7px 8px;
+      font-size: 12px;
     }
 
     .ios-vertical-slider {
@@ -575,27 +634,69 @@
       <div class="parameter-grid">
         <label class="parameter-field">
           <span>sigma (σ)</span>
-          <input id="paramSigma" type="number" step="0.1" min="0.1" value="10" inputmode="decimal">
+          <div class="parameter-slider" data-key="sigma" data-slider-min="0.1" data-slider-max="30" role="slider"
+            tabindex="0" aria-label="sigma" aria-orientation="horizontal" aria-valuemin="0.1" aria-valuemax="30"
+            aria-valuenow="10">
+            <div class="parameter-slider-fill"></div>
+            <div class="parameter-slider-value" aria-hidden="true">10</div>
+            <input id="paramSigma" class="parameter-slider-input" type="number" step="0.1" min="0.1" value="10"
+              inputmode="decimal" tabindex="-1">
+          </div>
         </label>
         <label class="parameter-field">
           <span>rho (ρ)</span>
-          <input id="paramRho" type="number" step="0.1" value="28" inputmode="decimal">
+          <div class="parameter-slider" data-key="rho" data-slider-min="0" data-slider-max="60" role="slider"
+            tabindex="0" aria-label="rho" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="60"
+            aria-valuenow="28">
+            <div class="parameter-slider-fill"></div>
+            <div class="parameter-slider-value" aria-hidden="true">28</div>
+            <input id="paramRho" class="parameter-slider-input" type="number" step="0.1" value="28"
+              inputmode="decimal" tabindex="-1">
+          </div>
         </label>
         <label class="parameter-field">
           <span>beta (β)</span>
-          <input id="paramBeta" type="number" step="0.01" min="0.01" value="2.67" inputmode="decimal">
+          <div class="parameter-slider" data-key="beta" data-slider-min="0.01" data-slider-max="6" role="slider"
+            tabindex="0" aria-label="beta" aria-orientation="horizontal" aria-valuemin="0.01" aria-valuemax="6"
+            aria-valuenow="2.67">
+            <div class="parameter-slider-fill"></div>
+            <div class="parameter-slider-value" aria-hidden="true">2.67</div>
+            <input id="paramBeta" class="parameter-slider-input" type="number" step="0.01" min="0.01" value="2.67"
+              inputmode="decimal" tabindex="-1">
+          </div>
         </label>
         <label class="parameter-field">
           <span>x start</span>
-          <input id="paramX" type="number" step="0.01" value="0.08" inputmode="decimal">
+          <div class="parameter-slider" data-key="x" data-slider-min="-20" data-slider-max="20" role="slider"
+            tabindex="0" aria-label="x start" aria-orientation="horizontal" aria-valuemin="-20" aria-valuemax="20"
+            aria-valuenow="0.08">
+            <div class="parameter-slider-fill"></div>
+            <div class="parameter-slider-value" aria-hidden="true">0.08</div>
+            <input id="paramX" class="parameter-slider-input" type="number" step="0.01" value="0.08"
+              inputmode="decimal" tabindex="-1">
+          </div>
         </label>
         <label class="parameter-field">
           <span>y start</span>
-          <input id="paramY" type="number" step="0.01" value="0" inputmode="decimal">
+          <div class="parameter-slider" data-key="y" data-slider-min="-20" data-slider-max="20" role="slider"
+            tabindex="0" aria-label="y start" aria-orientation="horizontal" aria-valuemin="-20" aria-valuemax="20"
+            aria-valuenow="0">
+            <div class="parameter-slider-fill"></div>
+            <div class="parameter-slider-value" aria-hidden="true">0</div>
+            <input id="paramY" class="parameter-slider-input" type="number" step="0.01" value="0"
+              inputmode="decimal" tabindex="-1">
+          </div>
         </label>
         <label class="parameter-field">
           <span>z start</span>
-          <input id="paramZ" type="number" step="0.01" value="0" inputmode="decimal">
+          <div class="parameter-slider" data-key="z" data-slider-min="-20" data-slider-max="20" role="slider"
+            tabindex="0" aria-label="z start" aria-orientation="horizontal" aria-valuemin="-20" aria-valuemax="20"
+            aria-valuenow="0">
+            <div class="parameter-slider-fill"></div>
+            <div class="parameter-slider-value" aria-hidden="true">0</div>
+            <input id="paramZ" class="parameter-slider-input" type="number" step="0.01" value="0"
+              inputmode="decimal" tabindex="-1">
+          </div>
         </label>
       </div>
       <div class="parameter-actions">
@@ -648,6 +749,17 @@
     rho: document.getElementById("paramRho"),
     beta: document.getElementById("paramBeta"),
   }
+  const parameterSliders = Object.fromEntries(
+    Object.keys(parameterInputs).map((key) => {
+      const sliderControl = document.querySelector(`.parameter-slider[data-key="${key}"]`)
+
+      return [key, {
+        slider: sliderControl,
+        fill: sliderControl?.querySelector(".parameter-slider-fill") ?? null,
+        value: sliderControl?.querySelector(".parameter-slider-value") ?? null,
+      }]
+    })
+  )
   const minSpeedMultiplier = 0
   const minActiveSpeedMultiplier = 0.003
   const maxSpeedMultiplier = 50
@@ -660,6 +772,10 @@
   const baseTemperatureStep = 1
   const temperatureStepAccelerationInterval = 60
   const maxTemperatureStepMultiplier = 1000
+  const parameterWheelStepBoost = 10
+  const parameterSliderDragThreshold = 4
+  const wheelLineHeight = 16
+  const wheelPageHeight = 120
   const minZoomMultiplier = 0.01
   const maxZoomMultiplier = 1000
   const hintHoldStartDelay = 260
@@ -808,6 +924,10 @@
 
   function isSceneInteractionTarget(target) {
     return !(target instanceof Element && target.closest("#app, #menuToggleButton"))
+  }
+
+  function isParameterControlTarget(target) {
+    return target instanceof Element && target.closest(".parameter-slider") !== null
   }
 
   function clearDragInteraction() {
@@ -1005,9 +1125,6 @@
   function updateClassicPresetUI() {
     classicPresetButton.classList.toggle("is-active", classicPresetActive)
     classicPresetButton.setAttribute("aria-pressed", String(classicPresetActive))
-    parameterInputs.sigma.closest(".parameter-field")?.classList.toggle("is-active", classicPresetActive)
-    parameterInputs.rho.closest(".parameter-field")?.classList.toggle("is-active", classicPresetActive)
-    parameterInputs.beta.closest(".parameter-field")?.classList.toggle("is-active", classicPresetActive)
   }
 
   function setClassicPresetActive(nextActive) {
@@ -1231,6 +1348,156 @@
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value))
+  }
+
+  function getWheelDeltaPixels(event) {
+    if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+      return event.deltaY * wheelLineHeight
+    }
+
+    if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+      return event.deltaY * wheelPageHeight
+    }
+
+    return event.deltaY
+  }
+
+  function getParameterInputStep(input) {
+    const step = Number(input.step)
+    return Number.isFinite(step) && step > 0 ? step : 1
+  }
+
+  function formatParameterInputValue(input, value) {
+    return Number(value.toFixed(getParameterInputFractionDigits(input))).toString()
+  }
+
+  function getParameterInputFractionDigits(input) {
+    const stepText = input.getAttribute("step") || ""
+    const decimalPart = stepText.split(".")[1]
+    return decimalPart ? decimalPart.length : 0
+  }
+
+  function getParameterInputBounds(input) {
+    const min = input.min === "" ? -Infinity : Number(input.min)
+    const max = input.max === "" ? Infinity : Number(input.max)
+
+    return {
+      min: Number.isFinite(min) ? min : -Infinity,
+      max: Number.isFinite(max) ? max : Infinity,
+    }
+  }
+
+  function getStoredParameterValue(key) {
+    if (key === "x" || key === "y" || key === "z") {
+      return initialConditions[key]
+    }
+
+    return parameters[key]
+  }
+
+  function getParameterSliderBounds(key) {
+    const sliderControl = parameterSliders[key]?.slider
+    const min = Number(sliderControl?.dataset.sliderMin)
+    const max = Number(sliderControl?.dataset.sliderMax)
+
+    return {
+      min: Number.isFinite(min) ? min : 0,
+      max: Number.isFinite(max) ? max : 1,
+    }
+  }
+
+  function updateParameterSliderUI(key) {
+    const sliderControl = parameterSliders[key]?.slider
+    const sliderFill = parameterSliders[key]?.fill
+    const sliderValue = parameterSliders[key]?.value
+
+    if (!sliderControl || !sliderFill || !sliderValue) {
+      return
+    }
+
+    const input = parameterInputs[key]
+    const inputValue = Number(input.value)
+    const currentValue = Number.isFinite(inputValue) ? inputValue : getStoredParameterValue(key)
+    const { min, max } = getParameterSliderBounds(key)
+    const progress = max > min ? clamp((currentValue - min) / (max - min), 0, 1) : 0
+    const displayValue = input.value === "" ? formatParameterInputValue(input, currentValue) : input.value
+
+    sliderFill.style.setProperty("--fill-width", `${progress * 100}%`)
+    sliderValue.textContent = displayValue
+    sliderControl.setAttribute("aria-valuemin", min.toString())
+    sliderControl.setAttribute("aria-valuemax", max.toString())
+    sliderControl.setAttribute("aria-valuenow", currentValue.toString())
+    sliderControl.setAttribute("aria-valuetext", displayValue)
+  }
+
+  function updateParameterSlidersUI() {
+    Object.keys(parameterInputs).forEach((key) => {
+      updateParameterSliderUI(key)
+    })
+  }
+
+  function nudgeParameterInput(key, input, direction, stepMultiplier = 1) {
+    const currentValue = Number(input.value)
+    const baseValue = Number.isFinite(currentValue) ? currentValue : getStoredParameterValue(key)
+    const { min, max } = getParameterInputBounds(input)
+    const fractionDigits = getParameterInputFractionDigits(input)
+    const nextValue = clamp(
+      baseValue + direction * getParameterInputStep(input) * stepMultiplier,
+      min,
+      max
+    )
+
+    input.value = Number(nextValue.toFixed(fractionDigits)).toString()
+    updateParameter(key, input)
+  }
+
+  function setParameterFromSliderPointer(key, clientX) {
+    const sliderControl = parameterSliders[key]?.slider
+    const input = parameterInputs[key]
+
+    if (!sliderControl || !input) {
+      return
+    }
+
+    const rect = sliderControl.getBoundingClientRect()
+    const progress = clamp((clientX - rect.left) / rect.width, 0, 1)
+    const { min, max } = getParameterSliderBounds(key)
+    const nextValue = min + (max - min) * progress
+
+    input.value = formatParameterInputValue(input, nextValue)
+    updateParameter(key, input)
+  }
+
+  function startParameterInputEdit(key) {
+    const sliderControl = parameterSliders[key]?.slider
+    const input = parameterInputs[key]
+
+    if (!sliderControl || !input) {
+      return
+    }
+
+    sliderControl.classList.add("is-editing")
+    sliderControl.setAttribute("aria-disabled", "true")
+    input.focus()
+    input.select()
+  }
+
+  function stopParameterInputEdit(key, { revert = false } = {}) {
+    const sliderControl = parameterSliders[key]?.slider
+    const input = parameterInputs[key]
+
+    if (!sliderControl || !input) {
+      return
+    }
+
+    if (revert || input.value === "" || !Number.isFinite(Number(input.value))) {
+      input.value = formatParameterInputValue(input, getStoredParameterValue(key))
+      updateParameter(key, input)
+    }
+
+    sliderControl.classList.remove("is-editing")
+    sliderControl.removeAttribute("aria-disabled")
+    updateParameterSliderUI(key)
   }
 
   function speedMultiplierToProgress(multiplier) {
@@ -1732,6 +1999,7 @@
     syncAttractor(k, rgb)
     updateTemperatureSliderUI()
     updateSpeedSliderUI()
+    updateParameterSlidersUI()
     updateAnchor()
     updateMenuIntroOpacity()
   }
@@ -1797,8 +2065,149 @@
   }
 
   Object.entries(parameterInputs).forEach(([key, input]) => {
+    const sliderControl = parameterSliders[key]?.slider
+    let activePointerId = null
+    let pointerStartX = 0
+    let pointerStartedOnValue = false
+    let pointerDidDrag = false
+
     input.addEventListener("input", () => {
       updateParameter(key, input)
+    })
+
+    input.addEventListener("pointerdown", (event) => {
+      event.stopPropagation()
+    })
+
+    input.addEventListener("keydown", (event) => {
+      if (event.code === "Enter") {
+        event.preventDefault()
+        input.blur()
+        return
+      }
+
+      if (event.code === "Escape") {
+        event.preventDefault()
+        stopParameterInputEdit(key, { revert: true })
+        sliderControl?.focus()
+      }
+    })
+
+    input.addEventListener("blur", () => {
+      stopParameterInputEdit(key)
+    })
+
+    sliderControl?.addEventListener("wheel", (event) => {
+      if (sliderControl.classList.contains("is-editing")) {
+        return
+      }
+
+      const deltaPixels = getWheelDeltaPixels(event)
+
+      if (deltaPixels === 0) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      const direction = deltaPixels < 0 ? 1 : -1
+      const wheelSteps = Math.max(1, Math.round(Math.abs(deltaPixels) / 40))
+      const stepMultiplier = wheelSteps * (event.shiftKey ? parameterWheelStepBoost : 1)
+
+      nudgeParameterInput(key, input, direction, stepMultiplier)
+    }, { passive: false })
+
+    sliderControl?.addEventListener("pointerdown", (event) => {
+      if (event.target instanceof Element && event.target.closest("input")) {
+        return
+      }
+
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return
+      }
+
+      if (sliderControl.classList.contains("is-editing")) {
+        return
+      }
+
+      activePointerId = event.pointerId
+      pointerStartX = event.clientX
+      pointerStartedOnValue = event.target instanceof Element && event.target.closest(".parameter-slider-value") !== null
+      pointerDidDrag = false
+      sliderControl.setPointerCapture(event.pointerId)
+      sliderControl.focus()
+      event.preventDefault()
+
+      if (!pointerStartedOnValue) {
+        pointerDidDrag = true
+        setParameterFromSliderPointer(key, event.clientX)
+      }
+    })
+
+    sliderControl?.addEventListener("pointermove", (event) => {
+      if (activePointerId !== event.pointerId) {
+        return
+      }
+
+      if (event.buttons === 0 && event.pointerType !== "touch") {
+        return
+      }
+
+      if (!pointerDidDrag && Math.abs(event.clientX - pointerStartX) < parameterSliderDragThreshold) {
+        return
+      }
+
+      pointerDidDrag = true
+      setParameterFromSliderPointer(key, event.clientX)
+    })
+
+    sliderControl?.addEventListener("pointerup", (event) => {
+      if (activePointerId === event.pointerId) {
+        if (!pointerDidDrag && pointerStartedOnValue) {
+          startParameterInputEdit(key)
+        }
+
+        activePointerId = null
+        pointerStartX = 0
+        pointerStartedOnValue = false
+        pointerDidDrag = false
+      }
+    })
+
+    sliderControl?.addEventListener("pointercancel", (event) => {
+      if (activePointerId === event.pointerId) {
+        activePointerId = null
+        pointerStartX = 0
+        pointerStartedOnValue = false
+        pointerDidDrag = false
+      }
+    })
+
+    sliderControl?.addEventListener("lostpointercapture", () => {
+      activePointerId = null
+      pointerStartX = 0
+      pointerStartedOnValue = false
+      pointerDidDrag = false
+    })
+
+    sliderControl?.addEventListener("keydown", (event) => {
+      if (sliderControl.classList.contains("is-editing")) {
+        return
+      }
+
+      if (event.code === "ArrowRight" || event.code === "ArrowUp") {
+        event.preventDefault()
+        event.stopPropagation()
+        nudgeParameterInput(key, input, 1, event.shiftKey ? parameterWheelStepBoost : 1)
+        return
+      }
+
+      if (event.code === "ArrowLeft" || event.code === "ArrowDown") {
+        event.preventDefault()
+        event.stopPropagation()
+        nudgeParameterInput(key, input, -1, event.shiftKey ? parameterWheelStepBoost : 1)
+      }
     })
   })
   greenFlowButton.addEventListener("click", () => {
@@ -1914,6 +2323,10 @@
     update()
   })
   window.addEventListener("wheel", (event) => {
+    if (isParameterControlTarget(event.target)) {
+      return
+    }
+
     event.preventDefault()
 
     const factor = event.deltaY < 0 ? 1.08 : 1 / 1.08
