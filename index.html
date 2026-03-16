@@ -422,19 +422,23 @@
     font-size: 22px;
   }
 
-  @media (max-width: 640px) {
+  @media (max-width: 1024px) {
     #app {
       align-items: center;
-      position: relative;
+      position: fixed;
+      left: 50%;
+      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       top: auto;
       right: auto;
-      transform: none;
-      width: min(92vw, 680px);
-      max-height: none;
-      overflow-y: visible;
+      transform: translateX(-50%);
+      width: min(calc(100vw - 28px), 680px);
+      max-height: calc(100vh - 28px - env(safe-area-inset-bottom, 0px));
+      overflow-y: auto;
+      touch-action: pan-y;
     }
 
     .controls {
+      order: 2;
       width: 100%;
       max-width: 520px;
       align-items: center;
@@ -443,8 +447,12 @@
     }
 
     .menu-toolbar {
+      order: 1;
+      position: sticky;
+      bottom: 0;
       width: 100%;
       max-width: 520px;
+      z-index: 1;
     }
 
     .temperature-control {
@@ -457,7 +465,6 @@
     }
 
     .temperature-slider {
-      order: 4;
       margin-top: 0;
       width: 100%;
       height: 52px;
@@ -469,6 +476,7 @@
     }
 
     .parameter-panel {
+      order: 3;
       width: 100%;
       max-width: 520px;
       padding: 12px 12px 14px;
@@ -493,7 +501,7 @@
 
     .parameter-slider-input {
       padding: 7px 8px;
-      font-size: 12px;
+      font-size: 16px;
     }
 
     .ios-vertical-slider {
@@ -643,7 +651,7 @@
     <div class="parameter-panel">
       <div class="parameter-panel-title">System variables</div>
       <div class="parameter-grid">
-        <label class="parameter-field">
+        <div class="parameter-field">
           <span>sigma (σ)</span>
           <div class="parameter-slider" data-key="sigma" data-slider-min="0.1" data-slider-max="30" role="slider"
             tabindex="0" aria-label="sigma" aria-orientation="horizontal" aria-valuemin="0.1" aria-valuemax="30"
@@ -651,10 +659,10 @@
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">10</div>
             <input id="paramSigma" class="parameter-slider-input" type="number" step="0.1" min="0.1" value="10"
-              inputmode="decimal" tabindex="-1">
+              inputmode="decimal" tabindex="-1" aria-label="sigma">
           </div>
-        </label>
-        <label class="parameter-field">
+        </div>
+        <div class="parameter-field">
           <span>rho (ρ)</span>
           <div class="parameter-slider" data-key="rho" data-slider-min="0" data-slider-max="60" role="slider"
             tabindex="0" aria-label="rho" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="60"
@@ -662,10 +670,10 @@
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">28</div>
             <input id="paramRho" class="parameter-slider-input" type="number" step="0.1" value="28"
-              inputmode="decimal" tabindex="-1">
+              inputmode="decimal" tabindex="-1" aria-label="rho">
           </div>
-        </label>
-        <label class="parameter-field">
+        </div>
+        <div class="parameter-field">
           <span>beta (β)</span>
           <div class="parameter-slider" data-key="beta" data-slider-min="0.01" data-slider-max="6" role="slider"
             tabindex="0" aria-label="beta" aria-orientation="horizontal" aria-valuemin="0.01" aria-valuemax="6"
@@ -673,10 +681,10 @@
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">2.67</div>
             <input id="paramBeta" class="parameter-slider-input" type="number" step="0.01" min="0.01" value="2.67"
-              inputmode="decimal" tabindex="-1">
+              inputmode="decimal" tabindex="-1" aria-label="beta">
           </div>
-        </label>
-        <label class="parameter-field">
+        </div>
+        <div class="parameter-field">
           <span>x start</span>
           <div class="parameter-slider" data-key="x" data-slider-min="-20" data-slider-max="20" role="slider"
             tabindex="0" aria-label="x start" aria-orientation="horizontal" aria-valuemin="-20" aria-valuemax="20"
@@ -684,10 +692,10 @@
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">0.08</div>
             <input id="paramX" class="parameter-slider-input" type="number" step="0.01" value="0.08"
-              inputmode="decimal" tabindex="-1">
+              inputmode="decimal" tabindex="-1" aria-label="x start">
           </div>
-        </label>
-        <label class="parameter-field">
+        </div>
+        <div class="parameter-field">
           <span>y start</span>
           <div class="parameter-slider" data-key="y" data-slider-min="-20" data-slider-max="20" role="slider"
             tabindex="0" aria-label="y start" aria-orientation="horizontal" aria-valuemin="-20" aria-valuemax="20"
@@ -695,10 +703,10 @@
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">0</div>
             <input id="paramY" class="parameter-slider-input" type="number" step="0.01" value="0"
-              inputmode="decimal" tabindex="-1">
+              inputmode="decimal" tabindex="-1" aria-label="y start">
           </div>
-        </label>
-        <label class="parameter-field">
+        </div>
+        <div class="parameter-field">
           <span>z start</span>
           <div class="parameter-slider" data-key="z" data-slider-min="-20" data-slider-max="20" role="slider"
             tabindex="0" aria-label="z start" aria-orientation="horizontal" aria-valuemin="-20" aria-valuemax="20"
@@ -706,9 +714,9 @@
             <div class="parameter-slider-fill"></div>
             <div class="parameter-slider-value" aria-hidden="true">0</div>
             <input id="paramZ" class="parameter-slider-input" type="number" step="0.01" value="0"
-              inputmode="decimal" tabindex="-1">
+              inputmode="decimal" tabindex="-1" aria-label="z start">
           </div>
-        </label>
+        </div>
       </div>
       <div class="parameter-actions">
         <button id="classicPresetButton" class="preset-button" type="button">Classic Lorenz</button>
@@ -870,7 +878,7 @@
   }
 
   function getDefaultZoomMultiplier() {
-    return window.matchMedia("(max-width: 640px)").matches ? 0.7 : 1
+    return window.matchMedia("(max-width: 1024px)").matches ? 0.7 : 1
   }
 
   const defaultInitialConditions = {
@@ -2152,9 +2160,9 @@
 
   Object.entries(parameterInputs).forEach(([key, input]) => {
     const sliderControl = parameterSliders[key]?.slider
+    const sliderValue = parameterSliders[key]?.value
     let activePointerId = null
     let pointerStartX = 0
-    let pointerStartedOnValue = false
     let pointerDidDrag = false
 
     input.addEventListener("input", () => {
@@ -2181,6 +2189,20 @@
 
     input.addEventListener("blur", () => {
       stopParameterInputEdit(key)
+    })
+
+    sliderValue?.addEventListener("pointerdown", (event) => {
+      event.stopPropagation()
+    })
+
+    sliderValue?.addEventListener("click", (event) => {
+      if (sliderControl?.classList.contains("is-editing")) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      startParameterInputEdit(key)
     })
 
     sliderControl?.addEventListener("wheel", (event) => {
@@ -2219,16 +2241,12 @@
 
       activePointerId = event.pointerId
       pointerStartX = event.clientX
-      pointerStartedOnValue = event.target instanceof Element && event.target.closest(".parameter-slider-value") !== null
       pointerDidDrag = false
       sliderControl.setPointerCapture(event.pointerId)
       sliderControl.focus()
       event.preventDefault()
-
-      if (!pointerStartedOnValue) {
-        pointerDidDrag = true
-        setParameterFromSliderPointer(key, event.clientX)
-      }
+      pointerDidDrag = true
+      setParameterFromSliderPointer(key, event.clientX)
     })
 
     sliderControl?.addEventListener("pointermove", (event) => {
@@ -2250,13 +2268,8 @@
 
     sliderControl?.addEventListener("pointerup", (event) => {
       if (activePointerId === event.pointerId) {
-        if (!pointerDidDrag && pointerStartedOnValue) {
-          startParameterInputEdit(key)
-        }
-
         activePointerId = null
         pointerStartX = 0
-        pointerStartedOnValue = false
         pointerDidDrag = false
       }
     })
@@ -2265,7 +2278,6 @@
       if (activePointerId === event.pointerId) {
         activePointerId = null
         pointerStartX = 0
-        pointerStartedOnValue = false
         pointerDidDrag = false
       }
     })
@@ -2273,7 +2285,6 @@
     sliderControl?.addEventListener("lostpointercapture", () => {
       activePointerId = null
       pointerStartX = 0
-      pointerStartedOnValue = false
       pointerDidDrag = false
     })
 
