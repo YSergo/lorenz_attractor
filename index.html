@@ -229,6 +229,13 @@
     border-color: rgba(255, 255, 255, 0.24);
   }
 
+  .preset-button.is-active,
+  .preset-button.is-active:hover,
+  .preset-button.is-active:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.52);
+  }
+
   .preset-button:focus-visible {
     outline: none;
     border-color: rgba(255, 255, 255, 0.46);
@@ -276,7 +283,11 @@
   .parameter-slider:focus-within,
   .parameter-slider:focus-visible {
     outline: none;
-    border: 1px solid rgba(255, 255, 255, 0.46);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+  }
+
+  .parameter-slider.is-classic-preset-highlighted {
+    border-color: rgba(255, 255, 255, 0.52);
   }
 
   .parameter-slider.is-editing {
@@ -784,6 +795,7 @@
   const baseTemperature = Number(slider.value)
   const baseNormalized = (baseTemperature - 1000) / 9000
   const baseScale = 11 + baseNormalized * 18
+  const classicPresetParameterKeys = ["sigma", "rho", "beta"]
 
   let width = 0
   let height = 0
@@ -795,6 +807,7 @@
   let greenFlowLocked = false
   let greenFlowHeld = false
   let classicPresetActive = false
+  let classicPresetSnapshot = null
   let isDraggingAttractor = false
   let hasCustomAnchor = false
   let dragOffsetX = 0
@@ -1125,6 +1138,10 @@
   function updateClassicPresetUI() {
     classicPresetButton.classList.toggle("is-active", classicPresetActive)
     classicPresetButton.setAttribute("aria-pressed", String(classicPresetActive))
+
+    classicPresetParameterKeys.forEach((key) => {
+      parameterSliders[key]?.slider?.classList.toggle("is-classic-preset-highlighted", classicPresetActive)
+    })
   }
 
   function setClassicPresetActive(nextActive) {
@@ -1134,6 +1151,17 @@
 
     classicPresetActive = nextActive
     updateClassicPresetUI()
+  }
+
+  function clearClassicPreset({ restoreSnapshot = false } = {}) {
+    setClassicPresetActive(false)
+
+    if (restoreSnapshot) {
+      restoreClassicPresetSnapshot()
+      return
+    }
+
+    classicPresetSnapshot = null
   }
 
   function resetSimulation() {
@@ -1147,6 +1175,56 @@
     parameterOverrides.sigma = false
     parameterOverrides.rho = false
     parameterOverrides.beta = false
+  }
+
+  function captureClassicPresetSnapshot() {
+    return {
+      initialConditions: {
+        x: initialConditions.x,
+        y: initialConditions.y,
+        z: initialConditions.z,
+      },
+      parameters: {
+        sigma: parameters.sigma,
+        rho: parameters.rho,
+        beta: parameters.beta,
+      },
+      parameterOverrides: {
+        sigma: parameterOverrides.sigma,
+        rho: parameterOverrides.rho,
+        beta: parameterOverrides.beta,
+      },
+    }
+  }
+
+  function syncParameterInputsFromState() {
+    parameterInputs.x.value = formatParameterInputValue(parameterInputs.x, initialConditions.x)
+    parameterInputs.y.value = formatParameterInputValue(parameterInputs.y, initialConditions.y)
+    parameterInputs.z.value = formatParameterInputValue(parameterInputs.z, initialConditions.z)
+    parameterInputs.sigma.value = formatParameterInputValue(parameterInputs.sigma, parameters.sigma)
+    parameterInputs.rho.value = formatParameterInputValue(parameterInputs.rho, parameters.rho)
+    parameterInputs.beta.value = formatParameterInputValue(parameterInputs.beta, parameters.beta)
+  }
+
+  function restoreClassicPresetSnapshot() {
+    if (!classicPresetSnapshot) {
+      return
+    }
+
+    initialConditions.x = classicPresetSnapshot.initialConditions.x
+    initialConditions.y = classicPresetSnapshot.initialConditions.y
+    initialConditions.z = classicPresetSnapshot.initialConditions.z
+    parameters.sigma = classicPresetSnapshot.parameters.sigma
+    parameters.rho = classicPresetSnapshot.parameters.rho
+    parameters.beta = classicPresetSnapshot.parameters.beta
+    parameterOverrides.sigma = classicPresetSnapshot.parameterOverrides.sigma
+    parameterOverrides.rho = classicPresetSnapshot.parameterOverrides.rho
+    parameterOverrides.beta = classicPresetSnapshot.parameterOverrides.beta
+    classicPresetSnapshot = null
+
+    syncParameterInputsFromState()
+    resetSimulation()
+    update()
   }
 
   function resetToInitialState() {
@@ -1183,6 +1261,7 @@
 
     clearDynamicOverrides()
     setClassicPresetActive(false)
+    classicPresetSnapshot = null
     updateGreenFlowButtonUI()
     clearDragInteraction()
     hasCustomAnchor = false
@@ -1662,8 +1741,11 @@
     const max = Number(slider.max)
 
     slider.value = Math.round(clamp(nextValue, min, max)).toString()
-    setClassicPresetActive(false)
-    clearDynamicOverrides()
+
+    if (!classicPresetActive) {
+      clearDynamicOverrides()
+    }
+
     update()
   }
 
@@ -1928,8 +2010,8 @@
       return
     }
 
-    if (key === "sigma" || key === "rho" || key === "beta") {
-      setClassicPresetActive(false)
+    if (classicPresetActive) {
+      clearClassicPreset()
     }
 
     if (key === "x" || key === "y" || key === "z") {
@@ -1945,6 +2027,10 @@
   }
 
   function applyClassicLorenzPreset() {
+    if (!classicPresetSnapshot) {
+      classicPresetSnapshot = captureClassicPresetSnapshot()
+    }
+
     setClassicPresetActive(true)
     initialConditions.x = 0.08
     initialConditions.y = 0
@@ -1956,11 +2042,11 @@
     parameterOverrides.rho = true
     parameterOverrides.beta = true
 
-    parameterInputs.x.value = formatParameterValue(initialConditions.x)
-    parameterInputs.y.value = formatParameterValue(initialConditions.y)
-    parameterInputs.z.value = formatParameterValue(initialConditions.z)
-    parameterInputs.sigma.value = formatParameterValue(parameters.sigma)
-    parameterInputs.rho.value = formatParameterValue(parameters.rho)
+    parameterInputs.x.value = formatParameterInputValue(parameterInputs.x, initialConditions.x)
+    parameterInputs.y.value = formatParameterInputValue(parameterInputs.y, initialConditions.y)
+    parameterInputs.z.value = formatParameterInputValue(parameterInputs.z, initialConditions.z)
+    parameterInputs.sigma.value = formatParameterInputValue(parameterInputs.sigma, parameters.sigma)
+    parameterInputs.rho.value = formatParameterInputValue(parameterInputs.rho, parameters.rho)
     parameterInputs.beta.value = formatParameterValue(parameters.beta, 4)
 
     resetSimulation()
@@ -1969,7 +2055,7 @@
 
   function handleClassicPresetButtonClick() {
     if (classicPresetActive) {
-      setClassicPresetActive(false)
+      clearClassicPreset({ restoreSnapshot: true })
       classicPresetButton.blur()
       return
     }
@@ -2318,8 +2404,10 @@
   })
 
   slider.addEventListener("input", () => {
-    setClassicPresetActive(false)
-    clearDynamicOverrides()
+    if (!classicPresetActive) {
+      clearDynamicOverrides()
+    }
+
     update()
   })
   window.addEventListener("wheel", (event) => {
