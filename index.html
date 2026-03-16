@@ -801,8 +801,6 @@
   const hintHoldRepeatInterval = 45
   const holdableHintActions = new Set(["temperature-down", "temperature-up", "speed-up", "speed-down"])
   const baseTemperature = Number(slider.value)
-  const baseNormalized = (baseTemperature - 1000) / 9000
-  const baseScale = 11 + baseNormalized * 18
   const classicPresetParameterKeys = ["sigma", "rho", "beta"]
 
   let width = 0
@@ -958,13 +956,12 @@
   }
 
   function setAnchorFromVisibleCenter(centerX, centerY) {
-    const scaleCompensation = (state.temperatureScale - baseScale) * 30
     const nextAnchorX = width - centerX
 
     hasCustomAnchor = true
     state.anchorX = nextAnchorX
     state.targetAnchorX = nextAnchorX
-    state.anchorY = height + scaleCompensation - centerY
+    state.anchorY = height - centerY
     state.targetAnchorY = state.anchorY
   }
 
@@ -1309,9 +1306,8 @@
   }
 
   function updateAnchorFromPointer(clientX, clientY) {
-    const scaleCompensation = (state.temperatureScale - baseScale) * 30
     const nextAnchorX = width - (clientX - dragOffsetX)
-    const nextAnchorY = height - (clientY - dragOffsetY) + scaleCompensation
+    const nextAnchorY = height - (clientY - dragOffsetY)
 
     hasCustomAnchor = true
     state.anchorX = nextAnchorX
@@ -1346,12 +1342,11 @@
   }
 
   function getVisibleAnchorPosition() {
-    const scaleCompensation = (state.temperatureScale - baseScale) * 30
     const anchor = getCurrentAnchorPosition()
 
     return {
       x: width - anchor.x,
-      y: height - anchor.y + scaleCompensation,
+      y: height - anchor.y,
     }
   }
 
@@ -2031,10 +2026,9 @@
       return
     }
 
-    const scaleCompensation = (state.temperatureScale - baseScale) * 30
     const currentAnchor = getCurrentAnchorPosition()
     const currentCenterX = width - currentAnchor.x
-    const currentCenterY = height - currentAnchor.y + scaleCompensation
+    const currentCenterY = height - currentAnchor.y
     const currentScale = state.temperatureScale * zoomMultiplier
     const nextScale = state.temperatureScale * nextZoom
     const scaleRatio = nextScale / currentScale
@@ -2044,7 +2038,7 @@
     hasCustomAnchor = true
     state.anchorX = width - nextCenterX
     state.targetAnchorX = state.anchorX
-    state.anchorY = height + scaleCompensation - nextCenterY
+    state.anchorY = height - nextCenterY
     state.targetAnchorY = state.anchorY
     zoomMultiplier = nextZoom
     update()
@@ -2157,8 +2151,7 @@
     state.anchorY += (targetAnchor.y - state.anchorY) * 0.08
 
     const centerX = state.anchorX
-    const scaleCompensation = (state.temperatureScale - baseScale) * 30
-    const centerY = state.anchorY - scaleCompensation
+    const centerY = state.anchorY
     const cosRotation = Math.cos(state.rotation)
     const sinRotation = Math.sin(state.rotation)
 
