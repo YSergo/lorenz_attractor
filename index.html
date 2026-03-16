@@ -767,7 +767,7 @@
   const speedSliderStopZone = 0.012
   const speedSliderCurveExponent = 1
   const defaultSpeedMultiplier = 1
-  const speedIntroDuration = 2200
+  const speedIntroDuration = 2000
   const menuIntroMinOpacity = 0
   const baseTemperatureStep = 1
   const temperatureStepAccelerationInterval = 60
@@ -1644,7 +1644,7 @@
     }
 
     const progress = clamp((timestamp - speedIntroStartedAt) / speedIntroDuration, 0, 1)
-    const easedProgress = Math.pow(progress, 20)
+    const easedProgress = Math.pow(progress, 5)
     const nextSpeed = minActiveSpeedMultiplier
       + (defaultSpeedMultiplier - minActiveSpeedMultiplier) * easedProgress
 
