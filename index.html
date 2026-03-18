@@ -759,7 +759,7 @@
   const hintTemperatureValue = document.getElementById("hintTemperatureValue")
   const hintZoomValue = document.getElementById("hintZoomValue")
   const canvas = document.getElementById("attractor")
-  const ctx = canvas.getContext("2d")
+  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true }) || canvas.getContext("2d")
   const parameterInputs = {
     x: document.getElementById("paramX"),
     y: document.getElementById("paramY"),
@@ -799,6 +799,9 @@
   const maxZoomMultiplier = 1000
   const hintHoldStartDelay = 260
   const hintHoldRepeatInterval = 45
+  const minVisibleAttractorIterations = 200
+  const viewportPositionResetThreshold = 0.25
+  const viewportTransformResetThreshold = 0.0005
   const holdableHintActions = new Set(["temperature-down", "temperature-up", "speed-up", "speed-down"])
   const baseTemperature = Number(slider.value)
   const classicPresetParameterKeys = ["sigma", "rho", "beta"]
@@ -836,6 +839,10 @@
   let activeHintHoldPointerId = null
   let hintHoldTimeoutId = null
   let hintHoldIntervalId = null
+  let lastRenderedCenterX = Number.NaN
+  let lastRenderedCenterY = Number.NaN
+  let lastRenderedZoomMultiplier = Number.NaN
+  let lastRenderedRotation = Number.NaN
   const activeKeyboardHintActions = new Set()
 
   const activeSceneTouches = new Map()
@@ -925,6 +932,31 @@
     ctx.clearRect(0, 0, width, height)
     ctx.fillStyle = "rgba(0, 0, 0, 1)"
     ctx.fillRect(0, 0, width, height)
+  }
+
+  function hasViewportChanged(centerX, centerY) {
+    if (
+      !Number.isFinite(lastRenderedCenterX) ||
+      !Number.isFinite(lastRenderedCenterY) ||
+      !Number.isFinite(lastRenderedZoomMultiplier) ||
+      !Number.isFinite(lastRenderedRotation)
+    ) {
+      return true
+    }
+
+    return (
+      Math.abs(centerX - lastRenderedCenterX) > viewportPositionResetThreshold ||
+      Math.abs(centerY - lastRenderedCenterY) > viewportPositionResetThreshold ||
+      Math.abs(zoomMultiplier - lastRenderedZoomMultiplier) > viewportTransformResetThreshold ||
+      Math.abs(state.rotation - lastRenderedRotation) > viewportTransformResetThreshold
+    )
+  }
+
+  function syncRenderedViewport(centerX, centerY) {
+    lastRenderedCenterX = centerX
+    lastRenderedCenterY = centerY
+    lastRenderedZoomMultiplier = zoomMultiplier
+    lastRenderedRotation = state.rotation
   }
 
   function isEditableTarget(target) {
@@ -1288,8 +1320,11 @@
     canvas.width = Math.round(width * pixelRatio)
     canvas.height = Math.round(height * pixelRatio)
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
-    ctx.fillStyle = "rgba(0, 0, 0, 0.08)"
-    ctx.fillRect(0, 0, width, height)
+    lastRenderedCenterX = Number.NaN
+    lastRenderedCenterY = Number.NaN
+    lastRenderedZoomMultiplier = Number.NaN
+    lastRenderedRotation = Number.NaN
+    clearCanvas()
     lastPointerX = width * 0.5
     lastPointerY = height * 0.5
     updateAnchor()
@@ -2136,7 +2171,15 @@
   }
 
   function stepAttractor(iterations) {
-    const dt = 0.005
+    const baseDt = 0.005
+    const simulationIterations = Math.max(0, Math.round(iterations))
+
+    if (simulationIterations <= 0) {
+      return
+    }
+
+    const drawIterations = Math.max(simulationIterations, minVisibleAttractorIterations)
+    const dt = baseDt * (simulationIterations / drawIterations)
     const defaultAnchor = getDefaultAnchorTarget()
     const targetAnchor = hasPosition(state.targetAnchorX, state.targetAnchorY)
       ? { x: state.targetAnchorX, y: state.targetAnchorY }
@@ -2154,16 +2197,26 @@
     const centerY = state.anchorY
     const cosRotation = Math.cos(state.rotation)
     const sinRotation = Math.sin(state.rotation)
+    const shouldResetTrail = (
+      isDraggingAttractor ||
+      activeSceneTouches.size >= 2 ||
+      hasViewportChanged(centerX, centerY)
+    )
 
-    ctx.fillStyle = "rgba(0, 0, 0, 0.045)"
-    ctx.fillRect(0, 0, width, height)
+    if (shouldResetTrail) {
+      clearCanvas()
+    } else {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.04)"
+      ctx.fillRect(0, 0, width, height)
+    }
+
     ctx.lineWidth = 1.1
     ctx.strokeStyle = state.stroke
     ctx.shadowBlur = 18
     ctx.shadowColor = state.glow
     ctx.beginPath()
 
-    for (let i = 0; i < iterations; i += 1) {
+    for (let i = 0; i < drawIterations; i += 1) {
       const dx = state.sigma * (state.y - state.x)
       const dy = state.x * (state.rho - state.z) - state.y
       const dz = state.x * state.y - state.beta * state.z
@@ -2186,6 +2239,7 @@
 
     ctx.stroke()
     ctx.shadowBlur = 0
+    syncRenderedViewport(centerX, centerY)
   }
 
   function animate(timestamp) {
