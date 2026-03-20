@@ -80,6 +80,30 @@
     margin-right: auto;
   }
 
+  #screenshotButton {
+    color: rgba(255, 255, 255, 0.58);
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    flex: 0 0 42px;
+  }
+  #screenshotButton svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  #screenshotButton svg .camera-dot {
+    fill: currentColor;
+    stroke: none;
+  }
+
   .menu-button {
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
@@ -152,6 +176,11 @@
     outline: none;
     border-color: rgba(255, 255, 255, 0.46);
     background: rgba(255, 255, 255, 0.14);
+  }
+
+  .menu-button:disabled {
+    cursor: progress;
+    opacity: 0.72;
   }
 
   .menu-button.is-active {
@@ -629,6 +658,14 @@
           <path d="M20 19v-4h-4"></path>
         </svg>
       </button>
+      <button id="screenshotButton" class="menu-button" type="button" aria-label="Take screenshot"
+        title="Take screenshot">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="4.75" y="4.75" width="14.5" height="14.5" rx="3.4"></rect>
+          <circle cx="12" cy="12" r="3.3"></circle>
+          <circle class="camera-dot" cx="16.35" cy="7.65" r="0.9"></circle>
+        </svg>
+      </button>
       <button id="hideMenuButton" class="menu-button" type="button">hide menu</button>
     </div>
     <div class="controls">
@@ -752,6 +789,7 @@
   const speedSliderLabel = document.getElementById("speedSliderLabel")
   const greenFlowButton = document.getElementById("greenFlowButton")
   const resetButton = document.getElementById("resetButton")
+  const screenshotButton = document.getElementById("screenshotButton")
   const hideMenuButton = document.getElementById("hideMenuButton")
   const menuToggleButton = document.getElementById("menuToggleButton")
   const classicPresetButton = document.getElementById("classicPresetButton")
@@ -839,6 +877,7 @@
   let activeHintHoldPointerId = null
   let hintHoldTimeoutId = null
   let hintHoldIntervalId = null
+  let isTakingScreenshot = false
   let lastRenderedCenterX = Number.NaN
   let lastRenderedCenterY = Number.NaN
   let lastRenderedZoomMultiplier = Number.NaN
@@ -934,6 +973,93 @@
     ctx.fillRect(0, 0, width, height)
   }
 
+  function createScreenshotFilename(prefix = "lorenz-screenshot") {
+    const timestamp = new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-")
+    return `${prefix}-${timestamp}.png`
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+
+    link.href = url
+    link.download = filename
+    document.body.append(link)
+    link.click()
+    link.remove()
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(url)
+    }, 0)
+  }
+
+  function downloadCanvasAsPng(sourceCanvas, filename) {
+    return new Promise((resolve, reject) => {
+      if (typeof sourceCanvas.toBlob === "function") {
+        sourceCanvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("Could not create screenshot PNG blob."))
+            return
+          }
+
+          downloadBlob(blob, filename)
+          resolve()
+        }, "image/png")
+        return
+      }
+
+      try {
+        const link = document.createElement("a")
+        link.href = sourceCanvas.toDataURL("image/png")
+        link.download = filename
+        document.body.append(link)
+        link.click()
+        link.remove()
+        resolve()
+      } catch (error) {
+        reject(error)
+      }
+    })
+  }
+
+  function getExportCanvas() {
+    const exportCanvas = document.createElement("canvas")
+    const exportCtx = exportCanvas.getContext("2d")
+
+    if (!exportCtx) {
+      throw new Error("Could not create export canvas context.")
+    }
+
+    exportCanvas.width = canvas.width
+    exportCanvas.height = canvas.height
+    exportCtx.translate(exportCanvas.width, exportCanvas.height)
+    exportCtx.rotate(Math.PI)
+    exportCtx.drawImage(canvas, 0, 0)
+
+    return exportCanvas
+  }
+
+  async function saveSceneAsPng() {
+    await downloadCanvasAsPng(getExportCanvas(), createScreenshotFilename("lorenz-canvas"))
+  }
+
+  async function handleScreenshotButtonClick() {
+    if (isTakingScreenshot) {
+      return
+    }
+
+    isTakingScreenshot = true
+    screenshotButton.disabled = true
+
+    try {
+      await saveSceneAsPng()
+    } finally {
+      isTakingScreenshot = false
+      screenshotButton.disabled = false
+      screenshotButton.blur()
+    }
+  }
+
   function hasViewportChanged(centerX, centerY) {
     if (
       !Number.isFinite(lastRenderedCenterX) ||
@@ -973,8 +1099,12 @@
     )
   }
 
+  function isUiTarget(target) {
+    return target instanceof Element && target.closest("#app, #menuToggleButton") !== null
+  }
+
   function isSceneInteractionTarget(target) {
-    return !(target instanceof Element && target.closest("#app, #menuToggleButton"))
+    return !isUiTarget(target)
   }
 
   function isParameterControlTarget(target) {
@@ -2406,6 +2536,9 @@
     resetToInitialState()
     resetButton.blur()
   })
+  screenshotButton.addEventListener("click", () => {
+    void handleScreenshotButtonClick()
+  })
   hideMenuButton.addEventListener("click", () => {
     setUiHidden(true)
   })
@@ -2519,6 +2652,13 @@
     event.preventDefault()
 
     const factor = event.deltaY < 0 ? 1.08 : 1 / 1.08
+
+    if (isUiTarget(event.target)) {
+      const visibleAnchor = getVisibleAnchorPosition()
+      zoomAtPoint(zoomMultiplier * factor, visibleAnchor.x, visibleAnchor.y)
+      return
+    }
+
     zoomAtPoint(zoomMultiplier * factor, event.clientX, event.clientY)
   }, { passive: false })
   window.addEventListener("pointerdown", (event) => {
