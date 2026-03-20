@@ -835,6 +835,8 @@
   const wheelPageHeight = 120
   const minZoomMultiplier = 0.01
   const maxZoomMultiplier = 1000
+  const zoomStepFactor = 1.03
+  const zoomTrailResetDebounceMs = 200
   const hintHoldStartDelay = 260
   const hintHoldRepeatInterval = 45
   const minVisibleAttractorIterations = 200
@@ -878,9 +880,10 @@
   let hintHoldTimeoutId = null
   let hintHoldIntervalId = null
   let isTakingScreenshot = false
+  let pendingZoomTrailReset = false
+  let zoomTrailResetTimeoutId = null
   let lastRenderedCenterX = Number.NaN
   let lastRenderedCenterY = Number.NaN
-  let lastRenderedZoomMultiplier = Number.NaN
   let lastRenderedRotation = Number.NaN
   const activeKeyboardHintActions = new Set()
 
@@ -1064,7 +1067,6 @@
     if (
       !Number.isFinite(lastRenderedCenterX) ||
       !Number.isFinite(lastRenderedCenterY) ||
-      !Number.isFinite(lastRenderedZoomMultiplier) ||
       !Number.isFinite(lastRenderedRotation)
     ) {
       return true
@@ -1073,7 +1075,6 @@
     return (
       Math.abs(centerX - lastRenderedCenterX) > viewportPositionResetThreshold ||
       Math.abs(centerY - lastRenderedCenterY) > viewportPositionResetThreshold ||
-      Math.abs(zoomMultiplier - lastRenderedZoomMultiplier) > viewportTransformResetThreshold ||
       Math.abs(state.rotation - lastRenderedRotation) > viewportTransformResetThreshold
     )
   }
@@ -1081,8 +1082,29 @@
   function syncRenderedViewport(centerX, centerY) {
     lastRenderedCenterX = centerX
     lastRenderedCenterY = centerY
-    lastRenderedZoomMultiplier = zoomMultiplier
     lastRenderedRotation = state.rotation
+  }
+
+  function clearZoomTrailResetDebounce() {
+    if (zoomTrailResetTimeoutId !== null) {
+      clearTimeout(zoomTrailResetTimeoutId)
+      zoomTrailResetTimeoutId = null
+    }
+
+    pendingZoomTrailReset = false
+  }
+
+  function scheduleZoomTrailReset() {
+    pendingZoomTrailReset = false
+
+    if (zoomTrailResetTimeoutId !== null) {
+      clearTimeout(zoomTrailResetTimeoutId)
+    }
+
+    zoomTrailResetTimeoutId = window.setTimeout(() => {
+      zoomTrailResetTimeoutId = null
+      pendingZoomTrailReset = true
+    }, zoomTrailResetDebounceMs)
   }
 
   function isEditableTarget(target) {
@@ -1193,6 +1215,10 @@
       const rotatedOffsetY = (offsetX * sin + offsetY * cos) * scaleRatio
       const nextCenterX = pinchMetrics.centerX + rotatedOffsetX
       const nextCenterY = pinchMetrics.centerY + rotatedOffsetY
+
+      if (nextZoomMultiplier !== currentZoomMultiplier) {
+        scheduleZoomTrailReset()
+      }
 
       zoomMultiplier = nextZoomMultiplier
       state.rotation += rotationDelta
@@ -1410,6 +1436,7 @@
     activeTemperaturePointerId = null
     activeSceneTouches.clear()
     syncPinchState()
+    clearZoomTrailResetDebounce()
     lastPointerX = width * 0.5
     lastPointerY = height * 0.5
 
@@ -1450,9 +1477,9 @@
     canvas.width = Math.round(width * pixelRatio)
     canvas.height = Math.round(height * pixelRatio)
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
+    clearZoomTrailResetDebounce()
     lastRenderedCenterX = Number.NaN
     lastRenderedCenterY = Number.NaN
-    lastRenderedZoomMultiplier = Number.NaN
     lastRenderedRotation = Number.NaN
     clearCanvas()
     lastPointerX = width * 0.5
@@ -2123,12 +2150,12 @@
     }
 
     if (action === "zoom-in") {
-      zoomAtPoint(zoomMultiplier * 1.08)
+      zoomAtPoint(zoomMultiplier * zoomStepFactor)
       return
     }
 
     if (action === "zoom-out") {
-      zoomAtPoint(zoomMultiplier / 1.08)
+      zoomAtPoint(zoomMultiplier / zoomStepFactor)
     }
   }
 
@@ -2206,6 +2233,7 @@
     state.anchorY = height - nextCenterY
     state.targetAnchorY = state.anchorY
     zoomMultiplier = nextZoom
+    scheduleZoomTrailReset()
     update()
   }
 
@@ -2327,13 +2355,23 @@
     const centerY = state.anchorY
     const cosRotation = Math.cos(state.rotation)
     const sinRotation = Math.sin(state.rotation)
+    const isZoomTrailResetScheduled = zoomTrailResetTimeoutId !== null
+    const shouldResetTrailForZoom = isZoomTrailResetScheduled || pendingZoomTrailReset
+    const shouldResetTrailForPinch = activeSceneTouches.size >= 2 && !shouldResetTrailForZoom
+    const shouldResetTrailForViewportChange = !shouldResetTrailForZoom
+      && hasViewportChanged(centerX, centerY)
     const shouldResetTrail = (
       isDraggingAttractor ||
-      activeSceneTouches.size >= 2 ||
-      hasViewportChanged(centerX, centerY)
+      shouldResetTrailForPinch ||
+      shouldResetTrailForZoom ||
+      shouldResetTrailForViewportChange
     )
 
     if (shouldResetTrail) {
+      if (shouldResetTrailForZoom) {
+        pendingZoomTrailReset = false
+      }
+
       clearCanvas()
     } else {
       ctx.fillStyle = "rgba(0, 0, 0, 0.04)"
@@ -2651,7 +2689,7 @@
 
     event.preventDefault()
 
-    const factor = event.deltaY < 0 ? 1.08 : 1 / 1.08
+    const factor = event.deltaY < 0 ? zoomStepFactor : 1 / zoomStepFactor
 
     if (isUiTarget(event.target)) {
       const visibleAnchor = getVisibleAnchorPosition()
@@ -2862,6 +2900,7 @@
   })
   window.addEventListener("blur", () => {
     stopHintHold()
+    clearZoomTrailResetDebounce()
     const keyboardActionsToReset = Array.from(activeKeyboardHintActions)
     activeKeyboardHintActions.clear()
     keyboardActionsToReset.forEach((action) => {
@@ -2899,18 +2938,6 @@
       return
     }
 
-    if (event.key === "+" || event.key === "=") {
-      event.preventDefault()
-      zoomAtPoint(zoomMultiplier * 1.08)
-      return
-    }
-
-    if (event.key === "-" || event.key === "_") {
-      event.preventDefault()
-      zoomAtPoint(zoomMultiplier / 1.08)
-      return
-    }
-
     if (event.code === "KeyR") {
       event.preventDefault()
       resetToInitialState()
@@ -2920,6 +2947,18 @@
     if (event.code === "Space") {
       event.preventDefault()
       setUiHidden(!uiHidden)
+      return
+    }
+
+    if (event.key === "+" || event.key === "=") {
+      event.preventDefault()
+      zoomAtPoint(zoomMultiplier * zoomStepFactor)
+      return
+    }
+
+    if (event.key === "-" || event.key === "_") {
+      event.preventDefault()
+      zoomAtPoint(zoomMultiplier / zoomStepFactor)
     }
   })
 
