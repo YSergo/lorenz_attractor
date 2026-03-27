@@ -394,6 +394,47 @@
     targetCtx.shadowBlur = 0
   }
 
+  function getLorenzDerivative(sample) {
+    return {
+      x: sample.sigma * (sample.y - sample.x),
+      y: sample.x * (sample.rho - sample.z) - sample.y,
+      z: sample.x * sample.y - sample.beta * sample.z,
+    }
+  }
+
+  function integrateLorenzRk4(simulationState, dt) {
+    const halfDt = dt * 0.5
+    const k1 = getLorenzDerivative(simulationState)
+    const k2 = getLorenzDerivative({
+      x: simulationState.x + k1.x * halfDt,
+      y: simulationState.y + k1.y * halfDt,
+      z: simulationState.z + k1.z * halfDt,
+      sigma: simulationState.sigma,
+      rho: simulationState.rho,
+      beta: simulationState.beta,
+    })
+    const k3 = getLorenzDerivative({
+      x: simulationState.x + k2.x * halfDt,
+      y: simulationState.y + k2.y * halfDt,
+      z: simulationState.z + k2.z * halfDt,
+      sigma: simulationState.sigma,
+      rho: simulationState.rho,
+      beta: simulationState.beta,
+    })
+    const k4 = getLorenzDerivative({
+      x: simulationState.x + k3.x * dt,
+      y: simulationState.y + k3.y * dt,
+      z: simulationState.z + k3.z * dt,
+      sigma: simulationState.sigma,
+      rho: simulationState.rho,
+      beta: simulationState.beta,
+    })
+
+    simulationState.x += (dt / 6) * (k1.x + 2 * k2.x + 2 * k3.x + k4.x)
+    simulationState.y += (dt / 6) * (k1.y + 2 * k2.y + 2 * k3.y + k4.y)
+    simulationState.z += (dt / 6) * (k1.z + 2 * k2.z + 2 * k3.z + k4.z)
+  }
+
   function replayRenderHistory(targetCtx, targetWidth, targetHeight) {
     fillCanvasBackground(targetCtx, targetWidth, targetHeight)
 
@@ -1851,13 +1892,7 @@
     const framePoints = new Float32Array(drawIterations * 2)
 
     for (let i = 0; i < drawIterations; i += 1) {
-      const dx = state.sigma * (state.y - state.x)
-      const dy = state.x * (state.rho - state.z) - state.y
-      const dz = state.x * state.y - state.beta * state.z
-
-      state.x += dx * dt
-      state.y += dy * dt
-      state.z += dz * dt
+      integrateLorenzRk4(state, dt)
 
       const projectedX = state.x * state.scale
       const projectedY = state.z * state.scale - state.y * state.scale * 0.28
