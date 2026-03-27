@@ -207,6 +207,10 @@
   const maxZoomMultiplier = 1000
   const zoomStepFactor = 1.04
   const zoomTrailResetDebounceMs = 200
+  const screenshotExportScale = 4
+  const screenshotHistoryPointBudget = 600000
+  const trailFadeAlpha = 0.04
+  const trailLineWidth = 1.1
   const hintHoldStartDelay = 260
   const hintHoldRepeatInterval = 45
   const minVisibleAttractorIterations = 200
@@ -255,9 +259,11 @@
   let lastRenderedCenterX = Number.NaN
   let lastRenderedCenterY = Number.NaN
   let lastRenderedRotation = Number.NaN
+  let renderHistoryPointCount = 0
   const activeKeyboardHintActions = new Set()
 
   const activeSceneTouches = new Map()
+  const renderHistory = []
 
   const state = {
     x: 0.08,
@@ -340,10 +346,87 @@
     }
   }
 
+  function fillCanvasBackground(targetCtx, targetWidth, targetHeight, alpha = 1) {
+    targetCtx.fillStyle = `rgba(0, 0, 0, ${alpha})`
+    targetCtx.fillRect(0, 0, targetWidth, targetHeight)
+  }
+
+  function clearRenderHistory() {
+    renderHistory.length = 0
+    renderHistoryPointCount = 0
+  }
+
+  function trimRenderHistory() {
+    while (renderHistoryPointCount > screenshotHistoryPointBudget && renderHistory.length > 1) {
+      const discardedFrame = renderHistory.shift()
+
+      if (!discardedFrame) {
+        break
+      }
+
+      renderHistoryPointCount -= discardedFrame.points.length / 2
+    }
+  }
+
+  function recordRenderFrame(points, strokeStyle) {
+    renderHistory.push({ points, strokeStyle })
+    renderHistoryPointCount += points.length / 2
+    trimRenderHistory()
+  }
+
+  function drawRenderFrame(targetCtx, points, strokeStyle) {
+    if (points.length < 2) {
+      return
+    }
+
+    targetCtx.lineWidth = trailLineWidth
+    targetCtx.strokeStyle = strokeStyle
+    targetCtx.shadowBlur = 0
+    targetCtx.shadowColor = strokeStyle
+    targetCtx.beginPath()
+    targetCtx.moveTo(points[0], points[1])
+
+    for (let i = 2; i < points.length; i += 2) {
+      targetCtx.lineTo(points[i], points[i + 1])
+    }
+
+    targetCtx.stroke()
+    targetCtx.shadowBlur = 0
+  }
+
+  function replayRenderHistory(targetCtx, targetWidth, targetHeight) {
+    fillCanvasBackground(targetCtx, targetWidth, targetHeight)
+
+    renderHistory.forEach((frame, index) => {
+      if (index > 0) {
+        fillCanvasBackground(targetCtx, targetWidth, targetHeight, trailFadeAlpha)
+      }
+
+      drawRenderFrame(targetCtx, frame.points, frame.strokeStyle)
+    })
+  }
+
+  function getFallbackExportCanvas() {
+    const exportCanvas = document.createElement("canvas")
+    const exportCtx = exportCanvas.getContext("2d")
+
+    if (!exportCtx) {
+      throw new Error("Could not create fallback export canvas context.")
+    }
+
+    exportCanvas.width = canvas.width
+    exportCanvas.height = canvas.height
+    exportCtx.translate(exportCanvas.width, exportCanvas.height)
+    exportCtx.rotate(Math.PI)
+    exportCtx.drawImage(canvas, 0, 0)
+
+    return exportCanvas
+  }
+
   function clearCanvas() {
+    clearRenderHistory()
     ctx.clearRect(0, 0, width, height)
-    ctx.fillStyle = "rgba(0, 0, 0, 1)"
-    ctx.fillRect(0, 0, width, height)
+    fillCanvasBackground(ctx, width, height)
   }
 
   function createScreenshotFilename(prefix = "lorenz-screenshot") {
@@ -396,6 +479,10 @@
   }
 
   function getExportCanvas() {
+    if (renderHistory.length === 0) {
+      return getFallbackExportCanvas()
+    }
+
     const exportCanvas = document.createElement("canvas")
     const exportCtx = exportCanvas.getContext("2d")
 
@@ -403,11 +490,19 @@
       throw new Error("Could not create export canvas context.")
     }
 
-    exportCanvas.width = canvas.width
-    exportCanvas.height = canvas.height
-    exportCtx.translate(exportCanvas.width, exportCanvas.height)
-    exportCtx.rotate(Math.PI)
-    exportCtx.drawImage(canvas, 0, 0)
+    const exportPixelRatio = pixelRatio * screenshotExportScale
+
+    exportCanvas.width = Math.round(width * exportPixelRatio)
+    exportCanvas.height = Math.round(height * exportPixelRatio)
+    exportCtx.setTransform(
+      -exportPixelRatio,
+      0,
+      0,
+      -exportPixelRatio,
+      exportCanvas.width,
+      exportCanvas.height,
+    )
+    replayRenderHistory(exportCtx, width, height)
 
     return exportCanvas
   }
@@ -1745,15 +1840,15 @@
 
       clearCanvas()
     } else {
-      ctx.fillStyle = "rgba(0, 0, 0, 0.04)"
-      ctx.fillRect(0, 0, width, height)
+      fillCanvasBackground(ctx, width, height, trailFadeAlpha)
     }
 
-    ctx.lineWidth = 1.1
+    ctx.lineWidth = trailLineWidth
     ctx.strokeStyle = state.stroke
     ctx.shadowBlur = 0 //was 18
     ctx.shadowColor = state.glow
     ctx.beginPath()
+    const framePoints = new Float32Array(drawIterations * 2)
 
     for (let i = 0; i < drawIterations; i += 1) {
       const dx = state.sigma * (state.y - state.x)
@@ -1768,6 +1863,10 @@
       const projectedY = state.z * state.scale - state.y * state.scale * 0.28
       const px = centerX + projectedX * cosRotation - projectedY * sinRotation
       const py = centerY + projectedX * sinRotation + projectedY * cosRotation
+      const pointIndex = i * 2
+
+      framePoints[pointIndex] = px
+      framePoints[pointIndex + 1] = py
 
       if (i === 0) {
         ctx.moveTo(px, py)
@@ -1778,6 +1877,7 @@
 
     ctx.stroke()
     ctx.shadowBlur = 0
+    recordRenderFrame(framePoints, state.stroke)
     syncRenderedViewport(centerX, centerY)
   }
 
