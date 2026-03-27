@@ -126,6 +126,10 @@
         </div>
       </div>
       <div class="parameter-actions">
+        <div class="integrator-switch" role="group" aria-label="Integrator method">
+          <button id="rk4Button" class="preset-button integrator-button is-active" type="button" aria-pressed="true">RK4</button>
+          <button id="eulerButton" class="preset-button integrator-button" type="button" aria-pressed="false">Euler</button>
+        </div>
         <button id="classicPresetButton" class="preset-button" type="button">Classic Lorenz</button>
       </div>
     </div>
@@ -163,6 +167,8 @@
   const hideMenuButton = document.getElementById("hideMenuButton")
   const menuToggleButton = document.getElementById("menuToggleButton")
   const classicPresetButton = document.getElementById("classicPresetButton")
+  const rk4Button = document.getElementById("rk4Button")
+  const eulerButton = document.getElementById("eulerButton")
   const hint = document.getElementById("hint")
   const hintTemperatureValue = document.getElementById("hintTemperatureValue")
   const hintZoomValue = document.getElementById("hintZoomValue")
@@ -216,6 +222,7 @@
   const minVisibleAttractorIterations = 200
   const viewportPositionResetThreshold = 0.25
   const viewportTransformResetThreshold = 0.0005
+  const defaultIntegrator = "rk4"
   const holdableHintActions = new Set(["temperature-down", "temperature-up", "speed-up", "speed-down"])
   const baseTemperature = Number(slider.value)
   const classicPresetParameterKeys = ["sigma", "rho", "beta"]
@@ -260,6 +267,7 @@
   let lastRenderedCenterY = Number.NaN
   let lastRenderedRotation = Number.NaN
   let renderHistoryPointCount = 0
+  let currentIntegrator = defaultIntegrator
   const activeKeyboardHintActions = new Set()
 
   const activeSceneTouches = new Map()
@@ -402,6 +410,14 @@
     }
   }
 
+  function integrateLorenzEuler(simulationState, dt) {
+    const derivative = getLorenzDerivative(simulationState)
+
+    simulationState.x += derivative.x * dt
+    simulationState.y += derivative.y * dt
+    simulationState.z += derivative.z * dt
+  }
+
   function integrateLorenzRk4(simulationState, dt) {
     const halfDt = dt * 0.5
     const k1 = getLorenzDerivative(simulationState)
@@ -433,6 +449,15 @@
     simulationState.x += (dt / 6) * (k1.x + 2 * k2.x + 2 * k3.x + k4.x)
     simulationState.y += (dt / 6) * (k1.y + 2 * k2.y + 2 * k3.y + k4.y)
     simulationState.z += (dt / 6) * (k1.z + 2 * k2.z + 2 * k3.z + k4.z)
+  }
+
+  function integrateLorenzStep(simulationState, dt) {
+    if (currentIntegrator === "euler") {
+      integrateLorenzEuler(simulationState, dt)
+      return
+    }
+
+    integrateLorenzRk4(simulationState, dt)
   }
 
   function replayRenderHistory(targetCtx, targetWidth, targetHeight) {
@@ -835,6 +860,28 @@
     }
   }
 
+  function updateIntegratorUI() {
+    rk4Button.classList.toggle("is-active", currentIntegrator === "rk4")
+    rk4Button.setAttribute("aria-pressed", String(currentIntegrator === "rk4"))
+    eulerButton.classList.toggle("is-active", currentIntegrator === "euler")
+    eulerButton.setAttribute("aria-pressed", String(currentIntegrator === "euler"))
+  }
+
+  function setIntegrator(nextIntegrator, { resetSimulationState = true } = {}) {
+    if (nextIntegrator !== "rk4" && nextIntegrator !== "euler") {
+      return
+    }
+
+    const hasChanged = currentIntegrator !== nextIntegrator
+    currentIntegrator = nextIntegrator
+    updateIntegratorUI()
+
+    if (hasChanged && resetSimulationState) {
+      resetSimulation()
+      update()
+    }
+  }
+
   function updateClassicPresetUI() {
     classicPresetButton.classList.toggle("is-active", classicPresetActive)
     classicPresetButton.setAttribute("aria-pressed", String(classicPresetActive))
@@ -945,6 +992,7 @@
     clearZoomTrailResetDebounce()
     lastPointerX = width * 0.5
     lastPointerY = height * 0.5
+    setIntegrator(defaultIntegrator, { resetSimulationState: false })
 
     initialConditions.x = defaultInitialConditions.x
     initialConditions.y = defaultInitialConditions.y
@@ -1892,7 +1940,7 @@
     const framePoints = new Float32Array(drawIterations * 2)
 
     for (let i = 0; i < drawIterations; i += 1) {
-      integrateLorenzRk4(state, dt)
+      integrateLorenzStep(state, dt)
 
       const projectedX = state.x * state.scale
       const projectedY = state.z * state.scale - state.y * state.scale * 0.28
@@ -2079,6 +2127,14 @@
   resetButton.addEventListener("click", () => {
     resetToInitialState()
     resetButton.blur()
+  })
+  rk4Button.addEventListener("click", () => {
+    setIntegrator("rk4")
+    rk4Button.blur()
+  })
+  eulerButton.addEventListener("click", () => {
+    setIntegrator("euler")
+    eulerButton.blur()
   })
   screenshotButton.addEventListener("click", () => {
     void handleScreenshotButtonClick()
@@ -2421,6 +2477,7 @@
 
   resizeCanvas()
   updateGreenFlowButtonUI()
+  updateIntegratorUI()
   updateClassicPresetUI()
   update()
   requestAnimationFrame(animate)

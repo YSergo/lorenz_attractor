@@ -222,7 +222,20 @@ html,
   .parameter-actions {
     display: flex;
     justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-top: 14px;
+  }
+
+  .integrator-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.03);
   }
 
   .preset-button {
@@ -253,6 +266,25 @@ html,
     outline: none;
     border-color: rgba(255, 255, 255, 0.46);
     background: rgba(255, 255, 255, 0.14);
+  }
+
+  .integrator-button {
+    min-width: 70px;
+    padding: 8px 14px;
+    border-color: transparent;
+    color: rgba(255, 255, 255, 0.66);
+  }
+
+  .integrator-button:hover {
+    border-color: transparent;
+  }
+
+  .integrator-button[aria-pressed="true"],
+  .integrator-button.is-active,
+  .integrator-button.is-active:hover,
+  .integrator-button.is-active:focus-visible {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: transparent;
   }
 
   .parameter-field {
