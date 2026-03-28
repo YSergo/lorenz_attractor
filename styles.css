@@ -181,7 +181,7 @@ html,
     font: inherit;
     font-size: 14px;
     cursor: pointer;
-    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    transition: background 500ms ease, border-color 500ms ease, color 500ms ease;
   }
 
   .icon-button {
@@ -278,7 +278,7 @@ html,
     font: inherit;
     font-size: 14px;
     cursor: pointer;
-    transition: background 120ms ease, border-color 120ms ease;
+    transition: background 500ms ease, border-color 500ms ease;
   }
 
   .preset-button:hover {
@@ -618,7 +618,7 @@ html,
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
-    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    transition: background 500ms ease, border-color 500ms ease, color 500ms ease;
   }
 
   .hint-key:hover {
