@@ -17,7 +17,7 @@
 
 <body>
   <canvas id="attractor"></canvas>
-  <div id="screenshotOverlay" class="screen-overlay " role="status" aria-live="polite" aria-hidden="true">
+  <div id="screenshotOverlay" class="screen-overlay hidden" role="status" aria-live="polite" aria-hidden="true">
     <div class="screen-overlay-card">
       <div class="screen-overlay-card-inner">
         <div class="screen-overlay-title">Preparing screenshot</div>
@@ -232,7 +232,7 @@
   let width = 0
   let height = 0
   let pixelRatio = 1
-  let uiHidden = false
+  let uiHidden = getDefaultUiHidden()
   let speedMultiplier = minActiveSpeedMultiplier
   let zoomMultiplier = getDefaultZoomMultiplier()
   let greenBoost = false
@@ -294,6 +294,10 @@
 
   function getDefaultZoomMultiplier() {
     return window.matchMedia("(max-width: 1024px)").matches ? 0.7 : 1
+  }
+
+  function getDefaultUiHidden() {
+    return window.matchMedia("(max-width: 1024px)").matches
   }
 
   const defaultInitialConditions = {
@@ -896,7 +900,6 @@
     state.anchorY = 0
     state.targetAnchorX = 0
     state.targetAnchorY = 0
-    setUiHidden(false)
     resetSimulation()
     update()
   }
@@ -2052,6 +2055,7 @@
   resizeCanvas()
   updateGreenFlowButtonUI()
   updateIntegratorUI()
+  setUiHidden(uiHidden)
   update()
   requestAnimationFrame(animate)
 
