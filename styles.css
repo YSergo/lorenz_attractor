@@ -45,6 +45,82 @@ html,
     transform: rotate(180deg);
   }
 
+  .screen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    background: rgba(3, 3, 3, 0.56);
+    backdrop-filter: blur(6px);
+  }
+
+  .screen-overlay-card {
+    position: relative;
+    max-width: min(88vw, 220px);
+    width: 100%;
+    border-radius: 22px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
+  }
+
+  .screen-overlay-card::before {
+    content: "";
+    display: block;
+    width: 520px;
+    height: 520px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-left: -260px;
+    margin-top: -260px;
+    background: linear-gradient(90deg, rgb(0 151 255 / 21%) 0%, rgb(255 0 149 / 5%) 48%, rgb(250 183 14 / 28%) 100%);
+    animation: overlay-border-orbit 8s linear infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .screen-overlay-card-inner {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    margin: 3px;
+    padding: 18px 20px;
+    box-sizing: border-box;
+    border-radius: 19px;
+    background: rgba(0, 0, 0, 0.28);
+    color: rgba(255, 255, 255, 0.88);
+    text-align: center;
+  }
+
+  .screen-overlay-title {
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+  }
+
+  .screen-overlay-text {
+    margin-top: 6px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  @keyframes overlay-border-orbit {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .controls {
     display: flex;
     flex-direction: column;

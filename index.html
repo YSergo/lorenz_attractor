@@ -17,6 +17,14 @@
 
 <body>
   <canvas id="attractor"></canvas>
+  <div id="screenshotOverlay" class="screen-overlay " role="status" aria-live="polite" aria-hidden="true">
+    <div class="screen-overlay-card">
+      <div class="screen-overlay-card-inner">
+        <div class="screen-overlay-title">Preparing screenshot</div>
+        <div class="screen-overlay-text">This may take a moment.</div>
+      </div>
+    </div>
+  </div>
   <div id="app">
     <div class="menu-toolbar">
       <button id="greenFlowButton" class="menu-button" type="button" aria-pressed="false">green flow</button>
@@ -159,6 +167,7 @@
   const greenFlowButton = document.getElementById("greenFlowButton")
   const resetButton = document.getElementById("resetButton")
   const screenshotButton = document.getElementById("screenshotButton")
+  const screenshotOverlay = document.getElementById("screenshotOverlay")
   const hideMenuButton = document.getElementById("hideMenuButton")
   const menuToggleButton = document.getElementById("menuToggleButton")
   const rk4Button = document.getElementById("rk4Button")
@@ -513,6 +522,19 @@
     })
   }
 
+  function waitForNextPaint() {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve)
+      })
+    })
+  }
+
+  function setScreenshotOverlayVisible(isVisible) {
+    screenshotOverlay.classList.toggle("hidden", !isVisible)
+    screenshotOverlay.setAttribute("aria-hidden", String(!isVisible))
+  }
+
   function getExportCanvas() {
     if (renderHistory.length === 0) {
       return getFallbackExportCanvas()
@@ -553,12 +575,15 @@
 
     isTakingScreenshot = true
     screenshotButton.disabled = true
+    setScreenshotOverlayVisible(true)
 
     try {
+      await waitForNextPaint()
       await saveSceneAsPng()
     } finally {
       isTakingScreenshot = false
       screenshotButton.disabled = false
+      setScreenshotOverlayVisible(false)
       screenshotButton.blur()
     }
   }
