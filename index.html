@@ -39,16 +39,6 @@
       <button id="hideMenuButton" class="menu-button" type="button">hide menu</button>
     </div>
     <div class="controls">
-      <div class="temperature-control">
-        <input class="temperature-slider-input" type="range" min="100" max="44444" value="3000" id="slider" tabindex="-1"
-          aria-hidden="true">
-        <button id="temperatureSlider" class="ios-vertical-slider temperature-slider" type="button" role="slider"
-          aria-label="color temperature" aria-orientation="horizontal" aria-valuemin="100" aria-valuemax="44444"
-          aria-valuenow="3000">
-          <div id="temperatureSliderFill" class="ios-vertical-slider-fill"></div>
-          <div id="temperatureSliderLabel" class="ios-vertical-slider-icon">3000K</div>
-        </button>
-      </div>
       <button id="speedSlider" class="ios-vertical-slider speed-slider" type="button" role="slider" aria-label="Animation speed"
         aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="50" aria-valuenow="1">
         <div id="speedSliderFill" class="ios-vertical-slider-fill"></div>
@@ -140,8 +130,6 @@
         <div class="hint-keys"><button class="hint-key" type="button" data-action="toggle-ui">Space</button></div>
         <div class="hint-label">green flow</div>
         <div class="hint-keys"><button class="hint-key" type="button" data-action="green-flow">Enter</button></div>
-        <div class="hint-label">temperature <span id="hintTemperatureValue" class="hint-value">(3000K)</span></div>
-        <div class="hint-keys"><button class="hint-key" type="button" data-action="temperature-down">&larr;</button><button class="hint-key" type="button" data-action="temperature-up">&rarr;</button></div>
         <div class="hint-label">speed</div>
         <div class="hint-keys"><button class="hint-key" type="button" data-action="speed-up">&uarr;</button><button class="hint-key" type="button" data-action="speed-down">&darr;</button></div>
         <div class="hint-label">zoom <span id="hintZoomValue" class="hint-value">(1x)</span></div>
@@ -153,10 +141,6 @@
 </body>
 <script>
   const app = document.getElementById("app")
-  const slider = document.getElementById("slider")
-  const temperatureSlider = document.getElementById("temperatureSlider")
-  const temperatureSliderFill = document.getElementById("temperatureSliderFill")
-  const temperatureSliderLabel = document.getElementById("temperatureSliderLabel")
   const speedSlider = document.getElementById("speedSlider")
   const speedSliderFill = document.getElementById("speedSliderFill")
   const speedSliderLabel = document.getElementById("speedSliderLabel")
@@ -168,7 +152,6 @@
   const rk4Button = document.getElementById("rk4Button")
   const eulerButton = document.getElementById("eulerButton")
   const hint = document.getElementById("hint")
-  const hintTemperatureValue = document.getElementById("hintTemperatureValue")
   const hintZoomValue = document.getElementById("hintZoomValue")
   const canvas = document.getElementById("attractor")
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true }) || canvas.getContext("2d")
@@ -198,11 +181,13 @@
   const speedSliderStopZone = 0.012
   const speedSliderCurveExponent = 1
   const defaultSpeedMultiplier = 1
+  const baseSimulationSpeed = 1644
   const speedIntroDuration = 2000
   const menuIntroMinOpacity = 0
-  const baseTemperatureStep = 1
-  const temperatureStepAccelerationInterval = 60
-  const maxTemperatureStepMultiplier = 1000
+  const defaultAttractorScale = 15
+  const defaultAttractorHue = 28
+  const defaultStroke = "hsla(28, 90%, 61%, 0.28)"
+  const defaultGlow = "hsla(28, 100%, 66.89%, 0.18)"
   const parameterWheelStepBoost = 10
   const parameterSliderDragThreshold = 4
   const wheelLineHeight = 16
@@ -221,8 +206,7 @@
   const viewportPositionResetThreshold = 0.25
   const viewportTransformResetThreshold = 0.0005
   const defaultIntegrator = "rk4"
-  const holdableHintActions = new Set(["temperature-down", "temperature-up", "speed-up", "speed-down"])
-  const baseTemperature = Number(slider.value)
+  const holdableHintActions = new Set(["speed-up", "speed-down"])
 
   let width = 0
   let height = 0
@@ -242,10 +226,7 @@
   let speedIntroActive = true
   let speedIntroStartedAt = null
   let menuIntroActive = true
-  let activeTemperatureKey = null
-  let temperatureKeyHoldStartedAt = 0
   let activeSpeedPointerId = null
-  let activeTemperaturePointerId = null
   let pinchLastDistance = 0
   let pinchLastCenterX = 0
   let pinchLastCenterY = 0
@@ -272,12 +253,11 @@
     x: 0.08,
     y: 0,
     z: 0,
-    hue: 30,
-    stroke: "rgba(255, 224, 176, 0.28)",
-    glow: "rgba(255, 224, 176, 0.18)",
-    temperatureScale: 14,
-    scale: 14,
-    speed: 2400,
+    hue: defaultAttractorHue,
+    stroke: defaultStroke,
+    glow: defaultGlow,
+    scale: defaultAttractorScale,
+    speed: baseSimulationSpeed,
     sigma: 10,
     rho: 28,
     beta: 8 / 3,
@@ -286,17 +266,6 @@
     anchorY: 0,
     targetAnchorX: 0,
     targetAnchorY: 0,
-  }
-
-  function getTemperatureDynamics(k) {
-    const normalized = (Number(k) - 1000) / 9000
-
-    return {
-      normalized,
-      sigma: 8 + normalized * 10,
-      rho: 18 + normalized * 22,
-      beta: 1.8 + normalized * 1.4,
-    }
   }
 
   function formatParameterValue(value, fractionDigits = 2) {
@@ -314,18 +283,12 @@
   }
   const initialConditions = { ...defaultInitialConditions }
 
-  const defaultDynamics = getTemperatureDynamics(baseTemperature)
   const defaultParameters = {
-    sigma: defaultDynamics.sigma,
-    rho: defaultDynamics.rho,
-    beta: defaultDynamics.beta,
+    sigma: 10,
+    rho: 28,
+    beta: 8 / 3,
   }
   const parameters = { ...defaultParameters }
-  const parameterOverrides = {
-    sigma: false,
-    rho: false,
-    beta: false,
-  }
 
   parameterInputs.sigma.value = formatParameterValue(parameters.sigma)
   parameterInputs.rho.value = formatParameterValue(parameters.rho)
@@ -884,14 +847,7 @@
     clearCanvas()
   }
 
-  function clearDynamicOverrides() {
-    parameterOverrides.sigma = false
-    parameterOverrides.rho = false
-    parameterOverrides.beta = false
-  }
-
   function resetToInitialState() {
-    slider.value = baseTemperature.toString()
     speedMultiplier = minActiveSpeedMultiplier
     speedIntroActive = true
     speedIntroStartedAt = null
@@ -899,10 +855,7 @@
     greenFlowLocked = false
     greenFlowHeld = false
     greenBoost = false
-    activeTemperatureKey = null
-    temperatureKeyHoldStartedAt = 0
     activeSpeedPointerId = null
-    activeTemperaturePointerId = null
     activeSceneTouches.clear()
     syncPinchState()
     clearZoomTrailResetDebounce()
@@ -924,7 +877,6 @@
     parameterInputs.rho.value = formatParameterValue(defaultParameters.rho)
     parameterInputs.beta.value = formatParameterValue(defaultParameters.beta)
 
-    clearDynamicOverrides()
     updateGreenFlowButtonUI()
     clearDragInteraction()
     hasCustomAnchor = false
@@ -1010,87 +962,15 @@
     }
   }
 
-  function kelvinToRGB(k) {
-
-    let temp = k / 100
-    let r, g, b
-
-    if (temp <= 66) {
-      r = 255
-      g = temp
-      g = 99.47 * Math.log(g) - 161.12
-      b = temp <= 19 ? 0 : 138.52 * Math.log(temp - 10) - 305.04
-    } else {
-      r = 329.7 * Math.pow(temp - 60, -0.133)
-      g = 288.12 * Math.pow(temp - 60, -0.0755)
-      b = 255
-    }
-
-    r = Math.min(255, Math.max(0, r))
-    g = Math.min(255, Math.max(0, g))
-    b = Math.min(255, Math.max(0, b))
-
-    return {
-      r: Math.round(r),
-      g: Math.round(g),
-      b: Math.round(b),
-    }
-  }
-
-  function rgbToHsl({ r, g, b }) {
-    const rn = r / 255
-    const gn = g / 255
-    const bn = b / 255
-    const max = Math.max(rn, gn, bn)
-    const min = Math.min(rn, gn, bn)
-    const delta = max - min
-    let hue = 0
-
-    if (delta !== 0) {
-      if (max === rn) {
-        hue = ((gn - bn) / delta) % 6
-      } else if (max === gn) {
-        hue = (bn - rn) / delta + 2
-      } else {
-        hue = (rn - gn) / delta + 4
-      }
-    }
-
-    return {
-      h: Math.round(hue * 60 < 0 ? hue * 60 + 360 : hue * 60),
-    }
-  }
-
-  function syncAttractor(k, rgb) {
-    const { normalized, sigma, rho, beta } = getTemperatureDynamics(k)
-    const { h } = rgbToHsl(rgb)
-    const strokeHue = greenBoost ? 135 : h
-    const glowHue = greenBoost ? 145 : h
-
-    state.hue = h
-    state.stroke = `hsla(${strokeHue}, 90%, ${greenBoost ? 58 : 65 - normalized * 18}%, ${greenBoost ? 0.34 : 0.28})`
-    state.glow = `hsla(${glowHue}, 100%, ${greenBoost ? 60 : 70 - normalized * 14}%, ${greenBoost ? 0.24 : 0.18})`
-    state.temperatureScale = 11 + normalized * 18
-    state.scale = state.temperatureScale * zoomMultiplier
-    state.speed = Math.round((800 + normalized * 3800) * speedMultiplier)
-    state.sigma = parameterOverrides.sigma ? parameters.sigma : sigma
-    state.rho = parameterOverrides.rho ? parameters.rho : rho
-    state.beta = parameterOverrides.beta ? parameters.beta : beta
-
-    if (!parameterOverrides.sigma) {
-      parameters.sigma = sigma
-      parameterInputs.sigma.value = formatParameterValue(sigma)
-    }
-
-    if (!parameterOverrides.rho) {
-      parameters.rho = rho
-      parameterInputs.rho.value = formatParameterValue(rho)
-    }
-
-    if (!parameterOverrides.beta) {
-      parameters.beta = beta
-      parameterInputs.beta.value = formatParameterValue(beta)
-    }
+  function syncAttractor() {
+    state.hue = defaultAttractorHue
+    state.stroke = greenBoost ? "hsla(135, 90%, 58%, 0.34)" : defaultStroke
+    state.glow = greenBoost ? "hsla(145, 100%, 60%, 0.24)" : defaultGlow
+    state.scale = defaultAttractorScale * zoomMultiplier
+    state.speed = Math.round(baseSimulationSpeed * speedMultiplier)
+    state.sigma = parameters.sigma
+    state.rho = parameters.rho
+    state.beta = parameters.beta
   }
 
   function clamp(value, min, max) {
@@ -1338,31 +1218,6 @@
       : Number(zoomMultiplier.toFixed(2)).toString()
   }
 
-  function temperatureToProgress(value) {
-    const min = Number(slider.min)
-    const max = Number(slider.max)
-
-    return (clamp(Number(value), min, max) - min) / (max - min)
-  }
-
-  function progressToTemperature(progress) {
-    const min = Number(slider.min)
-    const max = Number(slider.max)
-    const safeProgress = clamp(progress, 0, 1)
-
-    return Math.round(min + (max - min) * safeProgress)
-  }
-
-  function updateTemperatureSliderUI() {
-    const value = Number(slider.value)
-    const fillWidth = Math.max(0, temperatureToProgress(value) * 100)
-
-    temperatureSliderFill.style.setProperty("--fill-width", fillWidth + "%")
-    temperatureSliderLabel.textContent = `${value}K`
-    temperatureSlider.setAttribute("aria-valuenow", value.toString())
-    temperatureSlider.setAttribute("aria-valuetext", value + " kelvin")
-  }
-
   function updateSpeedSliderUI() {
     const progress = speedMultiplierToProgress(speedMultiplier)
     const fillWidth = Math.max(0, progress * 100)
@@ -1442,77 +1297,6 @@
     }
   }
 
-  function setTemperature(nextValue) {
-    const min = Number(slider.min)
-    const max = Number(slider.max)
-
-    slider.value = Math.round(clamp(nextValue, min, max)).toString()
-    clearDynamicOverrides()
-
-    update()
-  }
-
-  function getTemperatureStepForKey(code, isRepeat) {
-    const now = performance.now()
-
-    if (activeTemperatureKey !== code) {
-      activeTemperatureKey = code
-      temperatureKeyHoldStartedAt = now
-      return baseTemperatureStep
-    }
-
-    if (!isRepeat) {
-      return baseTemperatureStep
-    }
-
-    const heldDuration = now - temperatureKeyHoldStartedAt
-    const accelerationStage = Math.floor(heldDuration / temperatureStepAccelerationInterval)
-    const stepMultiplier = Math.min(
-      maxTemperatureStepMultiplier,
-      1 + accelerationStage * accelerationStage,
-    )
-
-    return baseTemperatureStep * stepMultiplier
-  }
-
-  function releaseTemperatureKey(code) {
-    if (activeTemperatureKey !== code) {
-      return
-    }
-
-    activeTemperatureKey = null
-    temperatureKeyHoldStartedAt = 0
-  }
-
-  function nudgeTemperatureFromKey(code, isRepeat) {
-    const direction = code === "ArrowRight" ? 1 : -1
-    const step = getTemperatureStepForKey(code, isRepeat)
-
-    setTemperature(Number(slider.value) + direction * step)
-  }
-
-  function getTemperatureCodeForHintAction(action) {
-    if (action === "temperature-down") {
-      return "ArrowLeft"
-    }
-
-    if (action === "temperature-up") {
-      return "ArrowRight"
-    }
-
-    return null
-  }
-
-  function releaseHintTemperatureAction(action) {
-    const code = getTemperatureCodeForHintAction(action)
-
-    if (!code) {
-      return
-    }
-
-    releaseTemperatureKey(code)
-  }
-
   function syncHintActionActive(action) {
     if (!action) {
       return
@@ -1554,14 +1338,6 @@
       actions.push("green-flow")
     }
 
-    if (event.code === "ArrowLeft") {
-      actions.push("temperature-down")
-    }
-
-    if (event.code === "ArrowRight") {
-      actions.push("temperature-up")
-    }
-
     if (event.code === "ArrowUp") {
       actions.push("speed-up")
     }
@@ -1592,14 +1368,6 @@
     if (action === "green-flow") {
       greenFlowLocked = !greenFlowLocked
       syncGreenFlowState()
-      return
-    }
-
-    if (action === "temperature-down" || action === "temperature-up") {
-      const code = getTemperatureCodeForHintAction(action)
-
-      blurSliderFocus()
-      nudgeTemperatureFromKey(code, isRepeat)
       return
     }
 
@@ -1638,7 +1406,6 @@
       hintHoldIntervalId = null
     }
 
-    releaseHintTemperatureAction(releasedAction)
     activeHintHoldAction = null
     activeHintHoldPointerId = null
     syncHintActionActive(releasedAction)
@@ -1667,7 +1434,7 @@
   }
 
   function blurSliderFocus() {
-    if (document.activeElement === speedSlider || document.activeElement === temperatureSlider) {
+    if (document.activeElement === speedSlider) {
       document.activeElement.blur()
     }
   }
@@ -1687,8 +1454,8 @@
     const currentAnchor = getCurrentAnchorPosition()
     const currentCenterX = width - currentAnchor.x
     const currentCenterY = height - currentAnchor.y
-    const currentScale = state.temperatureScale * zoomMultiplier
-    const nextScale = state.temperatureScale * nextZoom
+    const currentScale = defaultAttractorScale * zoomMultiplier
+    const nextScale = defaultAttractorScale * nextZoom
     const scaleRatio = nextScale / currentScale
     const nextCenterX = clientX - (clientX - currentCenterX) * scaleRatio
     const nextCenterY = clientY - (clientY - currentCenterY) * scaleRatio
@@ -1717,7 +1484,6 @@
     if (key === "x" || key === "y" || key === "z") {
       initialConditions[key] = nextValue
     } else {
-      parameterOverrides[key] = true
       parameters[key] = nextValue
       state[key] = nextValue
     }
@@ -1732,20 +1498,9 @@
     setSpeedMultiplier(progressToSpeedMultiplier(progress))
   }
 
-  function applyTemperatureFromPointer(clientX) {
-    const rect = temperatureSlider.getBoundingClientRect()
-    const progress = (clientX - rect.left) / rect.width
-    setTemperature(progressToTemperature(progress))
-  }
-
   function update() {
-    const k = Number(slider.value)
-    const rgb = kelvinToRGB(k)
-
-    hintTemperatureValue.textContent = `(${k}K)`
     hintZoomValue.textContent = `(${formatZoomMultiplier()}x)`
-    syncAttractor(k, rgb)
-    updateTemperatureSliderUI()
+    syncAttractor()
     updateSpeedSliderUI()
     updateParameterSlidersUI()
     updateAnchor()
@@ -2101,13 +1856,7 @@
     }
 
     performHintAction(action)
-    releaseHintTemperatureAction(action)
     hintButton.blur()
-  })
-
-  slider.addEventListener("input", () => {
-    clearDynamicOverrides()
-    update()
   })
   window.addEventListener("wheel", (event) => {
     if (isParameterControlTarget(event.target)) {
@@ -2214,12 +1963,6 @@
     applySpeedFromPointer(event.clientX)
     speedSlider.blur()
   })
-  temperatureSlider.addEventListener("pointerdown", (event) => {
-    activeTemperaturePointerId = event.pointerId
-    temperatureSlider.setPointerCapture(event.pointerId)
-    applyTemperatureFromPointer(event.clientX)
-    temperatureSlider.blur()
-  })
   speedSlider.addEventListener("pointermove", (event) => {
     if (activeSpeedPointerId !== event.pointerId) {
       return
@@ -2231,25 +1974,9 @@
 
     applySpeedFromPointer(event.clientX)
   })
-  temperatureSlider.addEventListener("pointermove", (event) => {
-    if (activeTemperaturePointerId !== event.pointerId) {
-      return
-    }
-
-    if (event.buttons === 0 && event.pointerType !== "touch") {
-      return
-    }
-
-    applyTemperatureFromPointer(event.clientX)
-  })
   speedSlider.addEventListener("pointerup", (event) => {
     if (activeSpeedPointerId === event.pointerId) {
       activeSpeedPointerId = null
-    }
-  })
-  temperatureSlider.addEventListener("pointerup", (event) => {
-    if (activeTemperaturePointerId === event.pointerId) {
-      activeTemperaturePointerId = null
     }
   })
   speedSlider.addEventListener("pointercancel", (event) => {
@@ -2257,16 +1984,8 @@
       activeSpeedPointerId = null
     }
   })
-  temperatureSlider.addEventListener("pointercancel", (event) => {
-    if (activeTemperaturePointerId === event.pointerId) {
-      activeTemperaturePointerId = null
-    }
-  })
   speedSlider.addEventListener("lostpointercapture", () => {
     activeSpeedPointerId = null
-  })
-  temperatureSlider.addEventListener("lostpointercapture", () => {
-    activeTemperaturePointerId = null
   })
   speedSlider.addEventListener("keydown", (event) => {
     if (event.code === "ArrowUp" || event.code === "ArrowRight") {
@@ -2280,25 +1999,6 @@
       event.preventDefault()
       blurSliderFocus()
       nudgeSpeedMultiplier(-1)
-    }
-  })
-  temperatureSlider.addEventListener("keydown", (event) => {
-    if (event.code === "ArrowRight") {
-      event.preventDefault()
-      blurSliderFocus()
-      nudgeTemperatureFromKey(event.code, event.repeat)
-      return
-    }
-
-    if (event.code === "ArrowLeft") {
-      event.preventDefault()
-      blurSliderFocus()
-      nudgeTemperatureFromKey(event.code, event.repeat)
-    }
-  })
-  temperatureSlider.addEventListener("keyup", (event) => {
-    if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
-      releaseTemperatureKey(event.code)
     }
   })
   window.addEventListener("keydown", (event) => {
@@ -2333,8 +2033,6 @@
     keyboardActionsToReset.forEach((action) => {
       syncHintActionActive(action)
     })
-    activeTemperatureKey = null
-    temperatureKeyHoldStartedAt = 0
     activeSceneTouches.clear()
     syncPinchState()
     clearDragInteraction()
@@ -2348,13 +2046,6 @@
 
   document.addEventListener("keydown", (event) => {
     if (event.defaultPrevented || isEditableTarget(event.target)) {
-      return
-    }
-
-    if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
-      event.preventDefault()
-      nudgeTemperatureFromKey(event.code, event.repeat)
-
       return
     }
 
@@ -2403,10 +2094,6 @@
   }, true)
 
   window.addEventListener("keyup", (event) => {
-    if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
-      releaseTemperatureKey(event.code)
-    }
-
     if (event.code !== "Enter" || !greenFlowHeld) {
       return
     }
