@@ -36,7 +36,12 @@
           <circle class="camera-dot" cx="16.35" cy="7.65" r="0.9"></circle>
         </svg>
       </button>
-      <button id="hideMenuButton" class="menu-button" type="button">hide menu</button>
+      <button id="hideMenuButton" class="menu-button icon-button" type="button" aria-label="Hide menu" title="Hide menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12"></path>
+          <path d="M18 6L6 18"></path>
+        </svg>
+      </button>
     </div>
     <div class="controls">
       <button id="speedSlider" class="ios-vertical-slider speed-slider" type="button" role="slider" aria-label="Animation speed"
@@ -137,7 +142,14 @@
       </div>
     </div>
   </div>
-  <button id="menuToggleButton" class="menu-button hidden hiddenMenu" type="button"></button>
+  <button id="menuToggleButton" class="menu-button icon-button hidden" type="button" aria-label="Show menu" title="Show menu">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <g>
+        <path
+          d="M23.24,8,18.29,5.54a5.13,5.13,0,0,0-4.58,0L8.76,8A5,5,0,0,0,6,12.48v7A5,5,0,0,0,8.76,24l5,2.47a5.13,5.13,0,0,0,4.58,0L23.24,24A5,5,0,0,0,26,19.52v-7A5,5,0,0,0,23.24,8ZM16,20a4,4,0,1,1,4-4A4,4,0,0,1,16,20Z" />
+      </g>
+    </svg>
+  </button>
 </body>
 <script>
   const app = document.getElementById("app")
@@ -231,7 +243,6 @@
   let pinchLastCenterX = 0
   let pinchLastCenterY = 0
   let pinchLastAngle = 0
-  let menuToggleGlowTimeoutId = null
   let activeHintHoldAction = null
   let activeHintHoldPointerId = null
   let hintHoldTimeoutId = null
@@ -728,36 +739,11 @@
     app.classList.toggle("hidden", uiHidden)
     menuToggleButton.classList.toggle("hidden", !uiHidden)
 
-    if (uiHidden) {
-      triggerMenuToggleGlow()
-    } else {
-      clearMenuToggleGlow()
-    }
-
     if (!uiHidden) {
       updateAnchor()
     }
 
     updateMenuIntroOpacity()
-  }
-
-  function clearMenuToggleGlow() {
-    if (menuToggleGlowTimeoutId !== null) {
-      clearTimeout(menuToggleGlowTimeoutId)
-      menuToggleGlowTimeoutId = null
-    }
-
-    menuToggleButton.classList.remove("is-glowing")
-  }
-
-  function triggerMenuToggleGlow() {
-    clearMenuToggleGlow()
-    void menuToggleButton.offsetWidth
-    menuToggleButton.classList.add("is-glowing")
-    menuToggleGlowTimeoutId = window.setTimeout(() => {
-      menuToggleButton.classList.remove("is-glowing")
-      menuToggleGlowTimeoutId = null
-    }, 1000)
   }
 
   function getMenuIntroOpacity() {
