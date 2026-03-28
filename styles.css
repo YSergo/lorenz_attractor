@@ -331,10 +331,6 @@ html,
     border: 1px solid rgba(255, 255, 255, 0.52);
   }
 
-  .parameter-slider.is-classic-preset-highlighted {
-    border-color: rgba(255, 255, 255, 0.52);
-  }
-
   .parameter-slider.is-editing {
     cursor: text;
   }

@@ -130,7 +130,6 @@
           <button id="rk4Button" class="preset-button integrator-button is-active" type="button" aria-pressed="true">RK4</button>
           <button id="eulerButton" class="preset-button integrator-button" type="button" aria-pressed="false">Euler</button>
         </div>
-        <button id="classicPresetButton" class="preset-button" type="button">Classic Lorenz</button>
       </div>
     </div>
     <div id="hint">
@@ -166,7 +165,6 @@
   const screenshotButton = document.getElementById("screenshotButton")
   const hideMenuButton = document.getElementById("hideMenuButton")
   const menuToggleButton = document.getElementById("menuToggleButton")
-  const classicPresetButton = document.getElementById("classicPresetButton")
   const rk4Button = document.getElementById("rk4Button")
   const eulerButton = document.getElementById("eulerButton")
   const hint = document.getElementById("hint")
@@ -225,7 +223,6 @@
   const defaultIntegrator = "rk4"
   const holdableHintActions = new Set(["temperature-down", "temperature-up", "speed-up", "speed-down"])
   const baseTemperature = Number(slider.value)
-  const classicPresetParameterKeys = ["sigma", "rho", "beta"]
 
   let width = 0
   let height = 0
@@ -236,8 +233,6 @@
   let greenBoost = false
   let greenFlowLocked = false
   let greenFlowHeld = false
-  let classicPresetActive = false
-  let classicPresetSnapshot = null
   let isDraggingAttractor = false
   let hasCustomAnchor = false
   let dragOffsetX = 0
@@ -882,35 +877,6 @@
     }
   }
 
-  function updateClassicPresetUI() {
-    classicPresetButton.classList.toggle("is-active", classicPresetActive)
-    classicPresetButton.setAttribute("aria-pressed", String(classicPresetActive))
-
-    classicPresetParameterKeys.forEach((key) => {
-      parameterSliders[key]?.slider?.classList.toggle("is-classic-preset-highlighted", classicPresetActive)
-    })
-  }
-
-  function setClassicPresetActive(nextActive) {
-    if (classicPresetActive === nextActive) {
-      return
-    }
-
-    classicPresetActive = nextActive
-    updateClassicPresetUI()
-  }
-
-  function clearClassicPreset({ restoreSnapshot = false } = {}) {
-    setClassicPresetActive(false)
-
-    if (restoreSnapshot) {
-      restoreClassicPresetSnapshot()
-      return
-    }
-
-    classicPresetSnapshot = null
-  }
-
   function resetSimulation() {
     state.x = initialConditions.x
     state.y = initialConditions.y
@@ -922,56 +888,6 @@
     parameterOverrides.sigma = false
     parameterOverrides.rho = false
     parameterOverrides.beta = false
-  }
-
-  function captureClassicPresetSnapshot() {
-    return {
-      initialConditions: {
-        x: initialConditions.x,
-        y: initialConditions.y,
-        z: initialConditions.z,
-      },
-      parameters: {
-        sigma: parameters.sigma,
-        rho: parameters.rho,
-        beta: parameters.beta,
-      },
-      parameterOverrides: {
-        sigma: parameterOverrides.sigma,
-        rho: parameterOverrides.rho,
-        beta: parameterOverrides.beta,
-      },
-    }
-  }
-
-  function syncParameterInputsFromState() {
-    parameterInputs.x.value = formatParameterInputValue(parameterInputs.x, initialConditions.x)
-    parameterInputs.y.value = formatParameterInputValue(parameterInputs.y, initialConditions.y)
-    parameterInputs.z.value = formatParameterInputValue(parameterInputs.z, initialConditions.z)
-    parameterInputs.sigma.value = formatParameterInputValue(parameterInputs.sigma, parameters.sigma)
-    parameterInputs.rho.value = formatParameterInputValue(parameterInputs.rho, parameters.rho)
-    parameterInputs.beta.value = formatParameterInputValue(parameterInputs.beta, parameters.beta)
-  }
-
-  function restoreClassicPresetSnapshot() {
-    if (!classicPresetSnapshot) {
-      return
-    }
-
-    initialConditions.x = classicPresetSnapshot.initialConditions.x
-    initialConditions.y = classicPresetSnapshot.initialConditions.y
-    initialConditions.z = classicPresetSnapshot.initialConditions.z
-    parameters.sigma = classicPresetSnapshot.parameters.sigma
-    parameters.rho = classicPresetSnapshot.parameters.rho
-    parameters.beta = classicPresetSnapshot.parameters.beta
-    parameterOverrides.sigma = classicPresetSnapshot.parameterOverrides.sigma
-    parameterOverrides.rho = classicPresetSnapshot.parameterOverrides.rho
-    parameterOverrides.beta = classicPresetSnapshot.parameterOverrides.beta
-    classicPresetSnapshot = null
-
-    syncParameterInputsFromState()
-    resetSimulation()
-    update()
   }
 
   function resetToInitialState() {
@@ -1009,8 +925,6 @@
     parameterInputs.beta.value = formatParameterValue(defaultParameters.beta)
 
     clearDynamicOverrides()
-    setClassicPresetActive(false)
-    classicPresetSnapshot = null
     updateGreenFlowButtonUI()
     clearDragInteraction()
     hasCustomAnchor = false
@@ -1533,10 +1447,7 @@
     const max = Number(slider.max)
 
     slider.value = Math.round(clamp(nextValue, min, max)).toString()
-
-    if (!classicPresetActive) {
-      clearDynamicOverrides()
-    }
+    clearDynamicOverrides()
 
     update()
   }
@@ -1803,10 +1714,6 @@
       return
     }
 
-    if (classicPresetActive) {
-      clearClassicPreset()
-    }
-
     if (key === "x" || key === "y" || key === "z") {
       initialConditions[key] = nextValue
     } else {
@@ -1817,44 +1724,6 @@
 
     resetSimulation()
     update()
-  }
-
-  function applyClassicLorenzPreset() {
-    if (!classicPresetSnapshot) {
-      classicPresetSnapshot = captureClassicPresetSnapshot()
-    }
-
-    setClassicPresetActive(true)
-    initialConditions.x = 0.08
-    initialConditions.y = 0
-    initialConditions.z = 0
-    parameters.sigma = 10
-    parameters.rho = 28
-    parameters.beta = 8 / 3
-    parameterOverrides.sigma = true
-    parameterOverrides.rho = true
-    parameterOverrides.beta = true
-
-    parameterInputs.x.value = formatParameterInputValue(parameterInputs.x, initialConditions.x)
-    parameterInputs.y.value = formatParameterInputValue(parameterInputs.y, initialConditions.y)
-    parameterInputs.z.value = formatParameterInputValue(parameterInputs.z, initialConditions.z)
-    parameterInputs.sigma.value = formatParameterInputValue(parameterInputs.sigma, parameters.sigma)
-    parameterInputs.rho.value = formatParameterInputValue(parameterInputs.rho, parameters.rho)
-    parameterInputs.beta.value = formatParameterValue(parameters.beta, 4)
-
-    resetSimulation()
-    update()
-  }
-
-  function handleClassicPresetButtonClick() {
-    if (classicPresetActive) {
-      clearClassicPreset({ restoreSnapshot: true })
-      classicPresetButton.blur()
-      return
-    }
-
-    applyClassicLorenzPreset()
-    classicPresetButton.blur()
   }
 
   function applySpeedFromPointer(clientX) {
@@ -2145,7 +2014,6 @@
   menuToggleButton.addEventListener("click", () => {
     setUiHidden(false)
   })
-  classicPresetButton.addEventListener("click", handleClassicPresetButtonClick)
   hint.addEventListener("pointerdown", (event) => {
     const hintButton = event.target.closest(".hint-key")
 
@@ -2238,10 +2106,7 @@
   })
 
   slider.addEventListener("input", () => {
-    if (!classicPresetActive) {
-      clearDynamicOverrides()
-    }
-
+    clearDynamicOverrides()
     update()
   })
   window.addEventListener("wheel", (event) => {
@@ -2478,7 +2343,6 @@
   resizeCanvas()
   updateGreenFlowButtonUI()
   updateIntegratorUI()
-  updateClassicPresetUI()
   update()
   requestAnimationFrame(animate)
 
