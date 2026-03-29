@@ -27,21 +27,24 @@
   </div>
   <div id="app">
     <div class="menu-toolbar">
-      <button id="greenFlowButton" class="menu-button" type="button" aria-pressed="false">green flow</button>
-      <button id="resetButton" class="menu-button icon-button" type="button" aria-label="Reset scene" title="Reset scene">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M20 11a8 8 0 0 0-14.9-3"></path>
-          <path d="M4 5v4h4"></path>
-          <path d="M4 13a8 8 0 0 0 14.9 3"></path>
-          <path d="M20 19v-4h-4"></path>
-        </svg>
-      </button>
+      <label id="colorButton" class="menu-button icon-button menu-color-button" aria-label="Choose color" title="Choose color">
+        <input id="nativeColorInput" class="native-color-input" type="color" value="#F59642" colorspace="display-p3" aria-label="Choose color">
+        <span id="colorPreview" class="native-color-preview"></span>
+      </label>
       <button id="screenshotButton" class="menu-button" type="button" aria-label="Take screenshot"
         title="Take screenshot">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4.75" y="4.75" width="14.5" height="14.5" rx="3.4"></rect>
           <circle cx="12" cy="12" r="3.3"></circle>
           <circle class="camera-dot" cx="16.35" cy="7.65" r="0.9"></circle>
+        </svg>
+      </button>
+      <button id="resetButton" class="menu-button icon-button" type="button" aria-label="Reset scene" title="Reset scene">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 11a8 8 0 0 0-14.9-3"></path>
+          <path d="M4 5v4h4"></path>
+          <path d="M4 13a8 8 0 0 0 14.9 3"></path>
+          <path d="M20 19v-4h-4"></path>
         </svg>
       </button>
       <button id="hideMenuButton" class="menu-button icon-button" type="button" aria-label="Hide menu" title="Hide menu">
@@ -141,8 +144,6 @@
         <div class="hint-keys"><button class="hint-key" type="button" data-action="reset">R</button></div>
         <div class="hint-label">toggle UI</div>
         <div class="hint-keys"><button class="hint-key" type="button" data-action="toggle-ui">Space</button></div>
-        <div class="hint-label">green flow</div>
-        <div class="hint-keys"><button class="hint-key" type="button" data-action="green-flow">Enter</button></div>
         <div class="hint-label">speed</div>
         <div class="hint-keys"><button class="hint-key" type="button" data-action="speed-up">&uarr;</button><button class="hint-key" type="button" data-action="speed-down">&darr;</button></div>
         <div class="hint-label">zoom <span id="hintZoomValue" class="hint-value">(1x)</span></div>
@@ -160,13 +161,31 @@
   </button>
 </body>
 <script>
+  function get2dContext(targetCanvas, options = {}) {
+    try {
+      const preferredContext = targetCanvas.getContext("2d", {
+        colorSpace: "display-p3",
+        ...options,
+      })
+
+      if (preferredContext) {
+        return preferredContext
+      }
+    } catch (error) {
+      console.warn("Falling back to default 2D canvas context.", error)
+    }
+
+    return targetCanvas.getContext("2d", options) || targetCanvas.getContext("2d")
+  }
+
   const app = document.getElementById("app")
   const speedSlider = document.getElementById("speedSlider")
   const speedSliderFill = document.getElementById("speedSliderFill")
   const speedSliderLabel = document.getElementById("speedSliderLabel")
-  const greenFlowButton = document.getElementById("greenFlowButton")
   const resetButton = document.getElementById("resetButton")
   const screenshotButton = document.getElementById("screenshotButton")
+  const nativeColorInput = document.getElementById("nativeColorInput")
+  const colorPreview = document.getElementById("colorPreview")
   const screenshotOverlay = document.getElementById("screenshotOverlay")
   const hideMenuButton = document.getElementById("hideMenuButton")
   const menuToggleButton = document.getElementById("menuToggleButton")
@@ -175,7 +194,7 @@
   const hint = document.getElementById("hint")
   const hintZoomValue = document.getElementById("hintZoomValue")
   const canvas = document.getElementById("attractor")
-  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true }) || canvas.getContext("2d")
+  const ctx = get2dContext(canvas, { alpha: false, desynchronized: true })
   const parameterInputs = {
     x: document.getElementById("paramX"),
     y: document.getElementById("paramY"),
@@ -206,9 +225,9 @@
   const speedIntroDuration = 2000
   const menuIntroMinOpacity = 0
   const defaultAttractorScale = 15
-  const defaultAttractorHue = 28
-  const defaultStroke = "hsla(28, 90%, 61%, 0.28)"
-  const defaultGlow = "hsla(28, 100%, 66.89%, 0.18)"
+  const defaultColorValue = "#F59642"
+  const defaultStroke = defaultColorValue
+  const defaultGlow = defaultColorValue
   const parameterWheelStepBoost = 10
   const parameterSliderDragThreshold = 4
   const wheelLineHeight = 16
@@ -235,9 +254,7 @@
   let uiHidden = getDefaultUiHidden()
   let speedMultiplier = minActiveSpeedMultiplier
   let zoomMultiplier = getDefaultZoomMultiplier()
-  let greenBoost = false
-  let greenFlowLocked = false
-  let greenFlowHeld = false
+  let selectedColorValue = defaultColorValue
   let isDraggingAttractor = false
   let hasCustomAnchor = false
   let dragOffsetX = 0
@@ -273,9 +290,9 @@
     x: 0.08,
     y: 0,
     z: 0,
-    hue: defaultAttractorHue,
     stroke: defaultStroke,
     glow: defaultGlow,
+    strokeAlpha: 0.28,
     scale: defaultAttractorScale,
     speed: baseSimulationSpeed,
     sigma: 10,
@@ -290,6 +307,11 @@
 
   function formatParameterValue(value, fractionDigits = 2) {
     return Number(value.toFixed(fractionDigits)).toString()
+  }
+
+  function updateColorButtonUI() {
+    nativeColorInput.value = selectedColorValue
+    colorPreview.style.setProperty("--swatch-color", selectedColorValue)
   }
 
   function getDefaultZoomMultiplier() {
@@ -358,17 +380,19 @@
     }
   }
 
-  function recordRenderFrame(points, strokeStyle) {
-    renderHistory.push({ points, strokeStyle })
+  function recordRenderFrame(points, strokeStyle, alpha) {
+    renderHistory.push({ points, strokeStyle, alpha })
     renderHistoryPointCount += points.length / 2
     trimRenderHistory()
   }
 
-  function drawRenderFrame(targetCtx, points, strokeStyle) {
+  function drawRenderFrame(targetCtx, points, strokeStyle, alpha = 1) {
     if (points.length < 2) {
       return
     }
 
+    targetCtx.save()
+    targetCtx.globalAlpha = alpha
     targetCtx.lineWidth = trailLineWidth
     targetCtx.strokeStyle = strokeStyle
     targetCtx.shadowBlur = 0
@@ -382,6 +406,7 @@
 
     targetCtx.stroke()
     targetCtx.shadowBlur = 0
+    targetCtx.restore()
   }
 
   function getLorenzDerivative(sample) {
@@ -450,13 +475,13 @@
         fillCanvasBackground(targetCtx, targetWidth, targetHeight, trailFadeAlpha)
       }
 
-      drawRenderFrame(targetCtx, frame.points, frame.strokeStyle)
+      drawRenderFrame(targetCtx, frame.points, frame.strokeStyle, frame.alpha)
     })
   }
 
   function getFallbackExportCanvas() {
     const exportCanvas = document.createElement("canvas")
-    const exportCtx = exportCanvas.getContext("2d")
+    const exportCtx = get2dContext(exportCanvas)
 
     if (!exportCtx) {
       throw new Error("Could not create fallback export canvas context.")
@@ -545,7 +570,7 @@
     }
 
     const exportCanvas = document.createElement("canvas")
-    const exportCtx = exportCanvas.getContext("2d")
+    const exportCtx = get2dContext(exportCanvas)
 
     if (!exportCtx) {
       throw new Error("Could not create export canvas context.")
@@ -815,24 +840,6 @@
     }
   }
 
-  function updateGreenFlowButtonUI() {
-    greenFlowButton.classList.toggle("is-active", greenBoost)
-    greenFlowButton.setAttribute("aria-pressed", String(greenBoost))
-    greenFlowButton.textContent = greenBoost ? "green flow on" : "green flow"
-  }
-
-  function syncGreenFlowState() {
-    const nextGreenBoost = greenFlowHeld ? !greenFlowLocked : greenFlowLocked
-    const hasChanged = greenBoost !== nextGreenBoost
-
-    greenBoost = nextGreenBoost
-    updateGreenFlowButtonUI()
-
-    if (hasChanged) {
-      update()
-    }
-  }
-
   function updateIntegratorUI() {
     rk4Button.classList.toggle("is-active", currentIntegrator === "rk4")
     rk4Button.setAttribute("aria-pressed", String(currentIntegrator === "rk4"))
@@ -867,9 +874,7 @@
     speedIntroActive = true
     speedIntroStartedAt = null
     zoomMultiplier = getDefaultZoomMultiplier()
-    greenFlowLocked = false
-    greenFlowHeld = false
-    greenBoost = false
+    selectedColorValue = defaultColorValue
     activeSpeedPointerId = null
     activeSceneTouches.clear()
     syncPinchState()
@@ -892,7 +897,6 @@
     parameterInputs.rho.value = formatParameterValue(defaultParameters.rho)
     parameterInputs.beta.value = formatParameterValue(defaultParameters.beta)
 
-    updateGreenFlowButtonUI()
     clearDragInteraction()
     hasCustomAnchor = false
     state.rotation = 0
@@ -977,9 +981,9 @@
   }
 
   function syncAttractor() {
-    state.hue = defaultAttractorHue
-    state.stroke = greenBoost ? "hsla(135, 90%, 58%, 0.34)" : defaultStroke
-    state.glow = greenBoost ? "hsla(145, 100%, 60%, 0.24)" : defaultGlow
+    state.stroke = selectedColorValue
+    state.glow = selectedColorValue
+    state.strokeAlpha = 0.28
     state.scale = defaultAttractorScale * zoomMultiplier
     state.speed = Math.round(baseSimulationSpeed * speedMultiplier)
     state.sigma = parameters.sigma
@@ -1348,10 +1352,6 @@
       actions.push("toggle-ui")
     }
 
-    if (event.code === "Enter") {
-      actions.push("green-flow")
-    }
-
     if (event.code === "ArrowUp") {
       actions.push("speed-up")
     }
@@ -1376,12 +1376,6 @@
 
     if (action === "toggle-ui") {
       setUiHidden(!uiHidden)
-      return
-    }
-
-    if (action === "green-flow") {
-      greenFlowLocked = !greenFlowLocked
-      syncGreenFlowState()
       return
     }
 
@@ -1513,6 +1507,7 @@
   }
 
   function update() {
+    updateColorButtonUI()
     hintZoomValue.textContent = `(${formatZoomMultiplier()}x)`
     syncAttractor()
     updateSpeedSliderUI()
@@ -1570,6 +1565,8 @@
       fillCanvasBackground(ctx, width, height, trailFadeAlpha)
     }
 
+    ctx.save()
+    ctx.globalAlpha = state.strokeAlpha
     ctx.lineWidth = trailLineWidth
     ctx.strokeStyle = state.stroke
     ctx.shadowBlur = 0 //was 18
@@ -1598,7 +1595,8 @@
 
     ctx.stroke()
     ctx.shadowBlur = 0
-    recordRenderFrame(framePoints, state.stroke)
+    ctx.restore()
+    recordRenderFrame(framePoints, state.stroke, state.strokeAlpha)
     syncRenderedViewport(centerX, centerY)
   }
 
@@ -1757,10 +1755,9 @@
       }
     })
   })
-  greenFlowButton.addEventListener("click", () => {
-    greenFlowLocked = !greenFlowLocked
-    syncGreenFlowState()
-    greenFlowButton.blur()
+  nativeColorInput.addEventListener("input", () => {
+    selectedColorValue = nativeColorInput.value
+    update()
   })
   resetButton.addEventListener("click", () => {
     resetToInitialState()
@@ -2053,7 +2050,6 @@
   })
 
   resizeCanvas()
-  updateGreenFlowButtonUI()
   updateIntegratorUI()
   setUiHidden(uiHidden)
   update()
@@ -2097,26 +2093,6 @@
     }
   })
 
-  window.addEventListener("keydown", (event) => {
-    if (event.code !== "Enter" || greenFlowHeld) {
-      return
-    }
-
-    blurSliderFocus()
-    event.preventDefault()
-    greenFlowHeld = true
-    syncGreenFlowState()
-  }, true)
-
-  window.addEventListener("keyup", (event) => {
-    if (event.code !== "Enter" || !greenFlowHeld) {
-      return
-    }
-
-    event.preventDefault()
-    greenFlowHeld = false
-    syncGreenFlowState()
-  }, true)
 </script>
 
 </html>

@@ -131,13 +131,13 @@ html,
 
   .menu-toolbar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 10px;
     width: min(88vw, 420px);
   }
 
-  #greenFlowButton {
-    margin-right: auto;
+  #hideMenuButton {
+    margin-left: auto;
   }
 
   #screenshotButton {
@@ -162,6 +162,42 @@ html,
   #screenshotButton svg .camera-dot {
     fill: currentColor;
     stroke: none;
+  }
+
+  .menu-color-button {
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.28);
+  }
+
+  .native-color-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .native-color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  .native-color-input::-webkit-color-swatch {
+    border: 0;
+  }
+
+  .native-color-preview {
+    display: block;
+    width: 16px;
+    height: 16px;
+    margin: auto;
+    border-radius: 50%;
+    background: var(--swatch-color, #FFB16E);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 0 0 1px rgba(255, 255, 255, 0.06);
   }
 
   #menuToggleButton svg {
@@ -194,13 +230,18 @@ html,
   }
 
   .icon-button svg {
-    width: 18px;
-    height: 18px;
+    width: 19px;
+    height: 19px;
     stroke: currentColor;
     fill: none;
     stroke-width: 1.85;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  #hideMenuButton svg {
+    width: 22px;
+    height: 22px;
   }
 
   .menu-button:hover {
