@@ -619,14 +619,14 @@ html,
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(0, 0, 0, 0.308);
     padding: 12px 14px;
-    width: min(88vw, 310px);
+    width: min(88vw, 214px);
     box-sizing: border-box;
     backdrop-filter: blur(16px);
   }
 
   .hint-grid {
     display: grid;
-    grid-template-columns: 176px max-content;
+    grid-template-columns: 90px max-content;
     align-items: center;
     justify-content: center;
     column-gap: 6px;
