@@ -1602,7 +1602,9 @@
 
   function animate(timestamp) {
     advanceSpeedIntro(timestamp)
-    stepAttractor(state.speed)
+    if (!isTakingScreenshot) {
+      stepAttractor(state.speed)
+    }
     requestAnimationFrame(animate)
   }
 
