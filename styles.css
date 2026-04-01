@@ -377,7 +377,7 @@ html,
     display: flex;
     flex-direction: column;
     gap: 5px;
-    text-align: left;
+    text-align: center;
   }
 
   .parameter-field span {
@@ -411,27 +411,25 @@ html,
     z-index: 0;
   }
 
-  .parameter-slider:focus-within,
   .parameter-slider:focus-visible {
     outline: none;
     border: 1px solid rgba(255, 255, 255, 0.52);
   }
 
   .parameter-slider.is-editing {
-    cursor: text;
+    cursor: pointer;
   }
 
   .parameter-slider-value {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 1px;
+    left: 5px;
     z-index: 1;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     min-width: 3ch;
-    /* padding: 0 6px; */
+    font: inherit;
     color: rgba(255, 255, 255, 0.82);
     font-size: 14px;
     cursor: text;
@@ -440,24 +438,29 @@ html,
 
   .parameter-slider-input {
     position: absolute;
-    inset: 0;
+    top: 1px;
+    left: 5px;
     z-index: 2;
-    width: 100%;
-    height: 100%;
+    width: auto;
+    max-width: calc(100% - 10px);
+    height: auto;
     -webkit-user-select: text;
     user-select: text;
     box-sizing: border-box;
     border: 0;
     border-radius: 0;
     background: transparent;
+    font: inherit;
     color: rgba(255, 255, 255, 0.82);
-    padding: 8px 10px;
-    text-align: center;
-    /* font: inherit; */
+    padding: 0;
+    text-align: left;
     cursor: text;
     opacity: 0;
     pointer-events: none;
     font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1;
   }
 
   .parameter-slider-input {
