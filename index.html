@@ -132,9 +132,19 @@
         </div>
       </div>
       <div class="parameter-actions">
-        <div class="integrator-switch" role="group" aria-label="Integrator method">
-          <button id="rk4Button" class="preset-button integrator-button is-active" type="button" aria-pressed="true">RK4</button>
-          <button id="eulerButton" class="preset-button integrator-button" type="button" aria-pressed="false">Euler</button>
+        <div class="parameter-action-group">
+          <div class="parameter-action-label">Integrator</div>
+          <div class="integrator-switch" role="group" aria-label="Integrator method">
+            <button id="rk4Button" class="preset-button integrator-button is-active" type="button" aria-pressed="true">RK4</button>
+            <button id="eulerButton" class="preset-button integrator-button" type="button" aria-pressed="false">Euler</button>
+          </div>
+        </div>
+        <div class="parameter-action-group">
+          <div class="parameter-action-label">Quality</div>
+          <div class="integrator-switch" role="group" aria-label="Trail quality">
+            <button id="trailModeLowButton" class="preset-button integrator-button" type="button" aria-pressed="false">Optimized</button>
+            <button id="trailModeHighButton" class="preset-button integrator-button is-active" type="button" aria-pressed="true">High</button>
+          </div>
         </div>
       </div>
     </div>
@@ -184,6 +194,8 @@
   const speedSliderLabel = document.getElementById("speedSliderLabel")
   const resetButton = document.getElementById("resetButton")
   const screenshotButton = document.getElementById("screenshotButton")
+  const trailModeLowButton = document.getElementById("trailModeLowButton")
+  const trailModeHighButton = document.getElementById("trailModeHighButton")
   const nativeColorInput = document.getElementById("nativeColorInput")
   const colorPreview = document.getElementById("colorPreview")
   const screenshotOverlay = document.getElementById("screenshotOverlay")
@@ -239,6 +251,7 @@
   const screenshotExportScale = 4
   const screenshotHistoryPointBudget = 600000
   const trailFadeAlpha = 0.04
+  const minVisibleTrailAlpha = 1 / 255
   const trailLineWidth = 1.1
   const hintHoldStartDelay = 260
   const hintHoldRepeatInterval = 45
@@ -246,6 +259,7 @@
   const viewportPositionResetThreshold = 0.25
   const viewportTransformResetThreshold = 0.0005
   const defaultIntegrator = "rk4"
+  const defaultTrailRenderMode = "tail"
   const holdableHintActions = new Set(["speed-up", "speed-down"])
 
   let width = 0
@@ -281,6 +295,7 @@
   let lastRenderedRotation = Number.NaN
   let renderHistoryPointCount = 0
   let currentIntegrator = defaultIntegrator
+  let currentTrailRenderMode = defaultTrailRenderMode
   const activeKeyboardHintActions = new Set()
 
   const activeSceneTouches = new Map()
@@ -369,20 +384,27 @@
   }
 
   function trimRenderHistory() {
-    while (renderHistoryPointCount > screenshotHistoryPointBudget && renderHistory.length > 1) {
+    const visibleTrailFrameCount = getVisibleTrailFrameCount(renderHistory.length)
+
+    while (
+      renderHistory.length > 1 && (
+        renderHistory.length > visibleTrailFrameCount ||
+        renderHistoryPointCount > screenshotHistoryPointBudget
+      )
+    ) {
       const discardedFrame = renderHistory.shift()
 
       if (!discardedFrame) {
         break
       }
 
-      renderHistoryPointCount -= discardedFrame.points.length / 2
+      renderHistoryPointCount -= discardedFrame.points.length / 3
     }
   }
 
   function recordRenderFrame(points, strokeStyle, alpha) {
     renderHistory.push({ points, strokeStyle, alpha })
-    renderHistoryPointCount += points.length / 2
+    renderHistoryPointCount += points.length / 3
     trimRenderHistory()
   }
 
@@ -407,6 +429,143 @@
     targetCtx.stroke()
     targetCtx.shadowBlur = 0
     targetCtx.restore()
+  }
+
+  function getVisibleTrailFrameCount(frameCount) {
+    const clampedTrailFadeAlpha = Math.min(Math.max(trailFadeAlpha, 0), 1)
+
+    if (frameCount <= 0) {
+      return 0
+    }
+
+    if (clampedTrailFadeAlpha <= 0) {
+      return frameCount
+    }
+
+    if (clampedTrailFadeAlpha >= 1) {
+      return 1
+    }
+
+    return Math.max(1, Math.ceil(Math.log(minVisibleTrailAlpha) / Math.log(1 - clampedTrailFadeAlpha)))
+  }
+
+  function getProjectionState(centerX, centerY, cosRotation, sinRotation) {
+    return {
+      centerX,
+      centerY,
+      cosRotation,
+      sinRotation,
+      scale: state.scale,
+    }
+  }
+
+  function getCurrentProjectionState() {
+    const defaultAnchor = getDefaultAnchorTarget()
+    const centerX = hasPosition(state.anchorX, state.anchorY) ? state.anchorX : defaultAnchor.x
+    const centerY = hasPosition(state.anchorX, state.anchorY) ? state.anchorY : defaultAnchor.y
+
+    return getProjectionState(centerX, centerY, Math.cos(state.rotation), Math.sin(state.rotation))
+  }
+
+  function projectTrailPoint(points, pointIndex, projectionState) {
+    const x = points[pointIndex]
+    const y = points[pointIndex + 1]
+    const z = points[pointIndex + 2]
+    const projectedX = x * projectionState.scale
+    const projectedY = z * projectionState.scale - y * projectionState.scale * 0.28
+
+    return {
+      x: projectionState.centerX + projectedX * projectionState.cosRotation - projectedY * projectionState.sinRotation,
+      y: projectionState.centerY + projectedX * projectionState.sinRotation + projectedY * projectionState.cosRotation,
+    }
+  }
+
+  function drawProjectedRenderFrame(targetCtx, points, strokeStyle, projectionState, alpha = 1) {
+    if (points.length < 3) {
+      return
+    }
+
+    targetCtx.save()
+    targetCtx.globalAlpha = alpha
+    targetCtx.lineWidth = trailLineWidth
+    targetCtx.strokeStyle = strokeStyle
+    targetCtx.shadowBlur = 0
+    targetCtx.shadowColor = strokeStyle
+    targetCtx.beginPath()
+
+    for (let pointIndex = 0; pointIndex < points.length; pointIndex += 3) {
+      const projectedPoint = projectTrailPoint(points, pointIndex, projectionState)
+
+      if (pointIndex === 0) {
+        targetCtx.moveTo(projectedPoint.x, projectedPoint.y)
+      } else {
+        targetCtx.lineTo(projectedPoint.x, projectedPoint.y)
+      }
+    }
+
+    targetCtx.stroke()
+    targetCtx.shadowBlur = 0
+    targetCtx.restore()
+  }
+
+  function renderVisibleTrail(targetCtx, targetWidth, targetHeight, projectionState) {
+    fillCanvasBackground(targetCtx, targetWidth, targetHeight)
+
+    const visibleTrailFrameCount = getVisibleTrailFrameCount(renderHistory.length)
+    const firstVisibleFrameIndex = Math.max(0, renderHistory.length - visibleTrailFrameCount)
+
+    for (let index = firstVisibleFrameIndex; index < renderHistory.length; index += 1) {
+      const frame = renderHistory[index]
+      const age = renderHistory.length - 1 - index
+      const alpha = frame.alpha * Math.pow(1 - trailFadeAlpha, age)
+
+      if (alpha <= minVisibleTrailAlpha) {
+        continue
+      }
+
+      drawProjectedRenderFrame(targetCtx, frame.points, frame.strokeStyle, projectionState, alpha)
+    }
+  }
+
+  function updateTrailModeButtonUI() {
+    const isTailMode = currentTrailRenderMode === "tail"
+    trailModeLowButton.classList.toggle("is-active", !isTailMode)
+    trailModeHighButton.classList.toggle("is-active", isTailMode)
+    trailModeLowButton.setAttribute("aria-pressed", String(!isTailMode))
+    trailModeHighButton.setAttribute("aria-pressed", String(isTailMode))
+  }
+
+  function rebuildTrailCanvasFromHistory() {
+    const projectionState = getCurrentProjectionState()
+
+    if (currentTrailRenderMode === "tail") {
+      renderVisibleTrail(ctx, width, height, projectionState)
+      return
+    }
+
+    fillCanvasBackground(ctx, width, height)
+
+    renderHistory.forEach((frame, index) => {
+      if (index > 0) {
+        fillCanvasBackground(ctx, width, height, trailFadeAlpha)
+      }
+
+      drawProjectedRenderFrame(ctx, frame.points, frame.strokeStyle, projectionState, frame.alpha)
+    })
+  }
+
+  function setTrailRenderMode(mode) {
+    if (mode !== "tail" && mode !== "buffer") {
+      return
+    }
+
+    if (currentTrailRenderMode === mode) {
+      return
+    }
+
+    currentTrailRenderMode = mode
+    updateTrailModeButtonUI()
+    rebuildTrailCanvasFromHistory()
   }
 
   function getLorenzDerivative(sample) {
@@ -468,15 +627,7 @@
   }
 
   function replayRenderHistory(targetCtx, targetWidth, targetHeight) {
-    fillCanvasBackground(targetCtx, targetWidth, targetHeight)
-
-    renderHistory.forEach((frame, index) => {
-      if (index > 0) {
-        fillCanvasBackground(targetCtx, targetWidth, targetHeight, trailFadeAlpha)
-      }
-
-      drawRenderFrame(targetCtx, frame.points, frame.strokeStyle, frame.alpha)
-    })
+    renderVisibleTrail(targetCtx, targetWidth, targetHeight, getCurrentProjectionState())
   }
 
   function getFallbackExportCanvas() {
@@ -1512,6 +1663,7 @@
     syncAttractor()
     updateSpeedSliderUI()
     updateParameterSlidersUI()
+    updateTrailModeButtonUI()
     updateAnchor()
     updateMenuIntroOpacity()
   }
@@ -1543,6 +1695,7 @@
     const centerY = state.anchorY
     const cosRotation = Math.cos(state.rotation)
     const sinRotation = Math.sin(state.rotation)
+    const projectionState = getProjectionState(centerX, centerY, cosRotation, sinRotation)
     const isZoomTrailResetScheduled = zoomTrailResetTimeoutId !== null
     const shouldResetTrailForZoom = isZoomTrailResetScheduled || pendingZoomTrailReset
     const shouldResetTrailForPinch = activeSceneTouches.size >= 2 && !shouldResetTrailForZoom
@@ -1560,43 +1713,44 @@
         pendingZoomTrailReset = false
       }
 
-      clearCanvas()
-    } else {
+      if (currentTrailRenderMode === "buffer") {
+        clearCanvas()
+      }
+    } else if (currentTrailRenderMode === "buffer") {
       fillCanvasBackground(ctx, width, height, trailFadeAlpha)
     }
 
-    ctx.save()
-    ctx.globalAlpha = state.strokeAlpha
-    ctx.lineWidth = trailLineWidth
-    ctx.strokeStyle = state.stroke
-    ctx.shadowBlur = 0 //was 18
-    ctx.shadowColor = state.glow
-    ctx.beginPath()
-    const framePoints = new Float32Array(drawIterations * 2)
+    const framePoints = new Float32Array(drawIterations * 3)
+    let screenFramePoints = null
+
+    if (currentTrailRenderMode === "buffer") {
+      screenFramePoints = new Float32Array(drawIterations * 2)
+    }
 
     for (let i = 0; i < drawIterations; i += 1) {
       integrateLorenzStep(state, dt)
 
-      const projectedX = state.x * state.scale
-      const projectedY = state.z * state.scale - state.y * state.scale * 0.28
-      const px = centerX + projectedX * cosRotation - projectedY * sinRotation
-      const py = centerY + projectedX * sinRotation + projectedY * cosRotation
-      const pointIndex = i * 2
+      const pointIndex = i * 3
+      framePoints[pointIndex] = state.x
+      framePoints[pointIndex + 1] = state.y
+      framePoints[pointIndex + 2] = state.z
 
-      framePoints[pointIndex] = px
-      framePoints[pointIndex + 1] = py
-
-      if (i === 0) {
-        ctx.moveTo(px, py)
-      } else {
-        ctx.lineTo(px, py)
+      if (screenFramePoints) {
+        const projectedPoint = projectTrailPoint(framePoints, pointIndex, projectionState)
+        const screenPointIndex = i * 2
+        screenFramePoints[screenPointIndex] = projectedPoint.x
+        screenFramePoints[screenPointIndex + 1] = projectedPoint.y
       }
     }
 
-    ctx.stroke()
-    ctx.shadowBlur = 0
-    ctx.restore()
     recordRenderFrame(framePoints, state.stroke, state.strokeAlpha)
+
+    if (currentTrailRenderMode === "tail") {
+      renderVisibleTrail(ctx, width, height, projectionState)
+    } else if (screenFramePoints) {
+      drawRenderFrame(ctx, screenFramePoints, state.stroke, state.strokeAlpha)
+    }
+
     syncRenderedViewport(centerX, centerY)
   }
 
@@ -1764,6 +1918,14 @@
   resetButton.addEventListener("click", () => {
     resetToInitialState()
     resetButton.blur()
+  })
+  trailModeLowButton.addEventListener("click", () => {
+    setTrailRenderMode("buffer")
+    trailModeLowButton.blur()
+  })
+  trailModeHighButton.addEventListener("click", () => {
+    setTrailRenderMode("tail")
+    trailModeHighButton.blur()
   })
   rk4Button.addEventListener("click", () => {
     setIntegrator("rk4")
