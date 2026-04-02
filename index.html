@@ -149,19 +149,22 @@
       </div>
     </div>
     <div id="hint">
+      <div class="parameter-panel-title">extra controls</div>
       <div class="hint-grid">
         <div class="hint-label">reset scene</div>
         <div class="hint-keys"><span class="hint-key">R</span></div>
         <div class="hint-label">toggle UI</div>
-        <div class="hint-keys"><span class="hint-key">Space</span></div>
-        <div class="hint-label">speed</div>
-        <div class="hint-keys"><span class="hint-key">&uarr;</span><span class="hint-key">&darr;</span></div>
+        <div class="hint-keys"><span class="hint-key">Escape</span></div>
+        <div class="hint-label">move</div>
+        <div class="hint-keys"><span class="hint-key">&larr;/&rarr;</span><span class="hint-key">&uarr;/&darr;</span></div>
         <div class="hint-label">zoom <span id="hintZoomValue" class="hint-value">(1x)</span></div>
-        <div class="hint-keys"><span class="hint-key">Wheel</span><span class="hint-key">+/-</span></div>
+        <div class="hint-keys"><span class="hint-key">Wheel</span><span class="hint-key">W / S</span></div>
         <div class="hint-label">screenshot</div>
-        <div class="hint-keys-svg">
+        <div class="hint-keys">
+          <span class="hint-key">P</span>
+          <span class="hint-hold-note">or</span>
           <span class="hint-key hint-icon-key" aria-hidden="true">
-            <svg viewBox="2 0 28 28">
+            <svg viewBox="0 0 32 32">
               <g>
                 <path
                   d="M23.24,8,18.29,5.54a5.13,5.13,0,0,0-4.58,0L8.76,8A5,5,0,0,0,6,12.48v7A5,5,0,0,0,8.76,24l5,2.47a5.13,5.13,0,0,0,4.58,0L23.24,24A5,5,0,0,0,26,19.52v-7A5,5,0,0,0,23.24,8ZM16,20a4,4,0,1,1,4-4A4,4,0,0,1,16,20Z" />
@@ -264,6 +267,8 @@
   const trailFadeAlpha = 0.04
   const minVisibleTrailAlpha = 1 / 255
   const trailLineWidth = 1.1
+  const keyboardPanStep = 5
+  const keyboardZoomFactor = 1.009
   const menuToggleScreenshotHoldDelay = 420
   const minVisibleAttractorIterations = 200
   const viewportPositionResetThreshold = 0.25
@@ -304,6 +309,7 @@
   let menuToggleHoldTimeoutId = null
   let activeMenuTogglePointerId = null
   let suppressNextMenuToggleClick = false
+  const activeMovementKeys = new Set()
 
   const activeSceneTouches = new Map()
   const renderHistory = []
@@ -1436,20 +1442,6 @@
     update()
   }
 
-  function nudgeSpeedMultiplier(direction) {
-    if (direction > 0) {
-      setSpeedMultiplier(speedMultiplier <= minSpeedMultiplier ? minActiveSpeedMultiplier : speedMultiplier * 1.08)
-      return
-    }
-
-    if (speedMultiplier <= minActiveSpeedMultiplier) {
-      setSpeedMultiplier(minSpeedMultiplier)
-      return
-    }
-
-    setSpeedMultiplier(speedMultiplier / 1.08)
-  }
-
   function advanceSpeedIntro(timestamp) {
     if (!speedIntroActive) {
       return
@@ -1548,6 +1540,48 @@
     zoomMultiplier = nextZoom
     scheduleZoomTrailReset()
     update()
+  }
+
+  function panVisibleCenter(offsetX, offsetY) {
+    const currentCenter = getVisibleAnchorPosition()
+
+    setAnchorFromVisibleCenter(currentCenter.x + offsetX, currentCenter.y + offsetY)
+    update()
+  }
+
+  function applyHeldKeyboardMovement() {
+    const isMovingForward = activeMovementKeys.has("KeyW")
+    const isMovingBackward = activeMovementKeys.has("KeyS")
+    const isMovingLeft = activeMovementKeys.has("ArrowLeft")
+    const isMovingRight = activeMovementKeys.has("ArrowRight")
+    const isMovingUp = activeMovementKeys.has("ArrowUp")
+    const isMovingDown = activeMovementKeys.has("ArrowDown")
+
+    if (!isMovingForward && !isMovingBackward && !isMovingLeft && !isMovingRight && !isMovingUp && !isMovingDown) {
+      return
+    }
+
+    if (isMovingForward !== isMovingBackward) {
+      zoomAtPoint(
+        isMovingForward
+          ? zoomMultiplier * keyboardZoomFactor
+          : zoomMultiplier / keyboardZoomFactor,
+      )
+    }
+
+    if (isMovingLeft !== isMovingRight) {
+      panVisibleCenter(
+        isMovingLeft ? keyboardPanStep : -keyboardPanStep,
+        0,
+      )
+    }
+
+    if (isMovingUp !== isMovingDown) {
+      panVisibleCenter(
+        0,
+        isMovingUp ? keyboardPanStep : -keyboardPanStep,
+      )
+    }
   }
 
   function updateParameter(key, input) {
@@ -1678,6 +1712,7 @@
   function animate(timestamp) {
     advanceSpeedIntro(timestamp)
     if (!isTakingScreenshot) {
+      applyHeldKeyboardMovement()
       stepAttractor(state.speed)
     }
     requestAnimationFrame(animate)
@@ -2038,20 +2073,6 @@
   speedSlider.addEventListener("lostpointercapture", () => {
     activeSpeedPointerId = null
   })
-  speedSlider.addEventListener("keydown", (event) => {
-    if (event.code === "ArrowUp" || event.code === "ArrowRight") {
-      event.preventDefault()
-      blurSliderFocus()
-      nudgeSpeedMultiplier(1)
-      return
-    }
-
-    if (event.code === "ArrowDown" || event.code === "ArrowLeft") {
-      event.preventDefault()
-      blurSliderFocus()
-      nudgeSpeedMultiplier(-1)
-    }
-  })
   window.addEventListener("resize", resizeCanvas)
   ;["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
     window.addEventListener(eventName, (event) => {
@@ -2060,6 +2081,7 @@
   })
   window.addEventListener("blur", () => {
     clearZoomTrailResetDebounce()
+    activeMovementKeys.clear()
     activeSceneTouches.clear()
     syncPinchState()
     clearDragInteraction()
@@ -2076,10 +2098,16 @@
       return
     }
 
-    if (event.code === "ArrowUp" || event.code === "ArrowDown") {
+    if (
+      event.code === "KeyW" ||
+      event.code === "ArrowLeft" ||
+      event.code === "KeyS" ||
+      event.code === "ArrowRight" ||
+      event.code === "ArrowUp" ||
+      event.code === "ArrowDown"
+    ) {
       event.preventDefault()
-      nudgeSpeedMultiplier(event.code === "ArrowUp" ? 1 : -1)
-
+      activeMovementKeys.add(event.code)
       return
     }
 
@@ -2089,23 +2117,24 @@
       return
     }
 
-    if (event.code === "Space") {
+    if (event.code === "Escape") {
       event.preventDefault()
       setUiHidden(!uiHidden)
       return
     }
 
-    if (!event.altKey && !event.ctrlKey && !event.metaKey
-      && (event.key === "+" || event.key === "=")) {
-      event.preventDefault()
-      zoomAtPoint(zoomMultiplier * zoomStepFactor)
-      return
-    }
+  })
 
-    if (!event.altKey && !event.ctrlKey && !event.metaKey
-      && (event.key === "-" || event.key === "_")) {
-      event.preventDefault()
-      zoomAtPoint(zoomMultiplier / zoomStepFactor)
+  document.addEventListener("keyup", (event) => {
+    if (
+      event.code === "KeyW" ||
+      event.code === "ArrowLeft" ||
+      event.code === "KeyS" ||
+      event.code === "ArrowRight" ||
+      event.code === "ArrowDown" ||
+      event.code === "ArrowUp"
+    ) {
+      activeMovementKeys.delete(event.code)
     }
   })
 
