@@ -660,12 +660,20 @@ html,
     min-width: 50px;
   }
 
+  .hint-keys-svg {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1px;
+    min-width: 50px;
+  }
+
   .hint-key {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    appearance: none;
     min-height: 24px;
+    box-sizing: border-box;
     padding: 0 7px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.14);
@@ -675,7 +683,7 @@ html,
     font-size: 10px;
     line-height: 1;
     white-space: nowrap;
-    cursor: pointer;
+    cursor: default;
     transition: background 500ms ease, border-color 500ms ease, color 500ms ease;
   }
 
@@ -685,18 +693,30 @@ html,
     color: rgba(255, 255, 255, 0.92);
   }
 
-  .hint-key:focus-visible {
-    outline: none;
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.38);
-    color: rgba(255, 255, 255, 0.96);
+  .hint-icon-key {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
 
-  .hint-key.is-active,
-  .hint-key.is-active:hover,
-  .hint-key.is-active:focus-visible {
-    background: rgba(255, 255, 255, 0.52);
-    color: rgba(18, 20, 24, 0.7);
+  .hint-icon-key svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    transform: rotate(90deg);
+  }
+
+  .hint-icon-key:hover {
+    border: 0;
+    background: transparent;
+  }
+
+  .hint-hold-note {
+    font-size: 11px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.46);
+    white-space: nowrap;
   }
 
   .hint-label {
