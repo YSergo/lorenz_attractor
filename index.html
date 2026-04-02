@@ -828,7 +828,7 @@
   function isEditableTarget(target) {
     return target instanceof HTMLElement && (
       target.isContentEditable ||
-      target.closest("input, textarea, select, button, [contenteditable='true']") !== null
+      target.closest("input, textarea, select, [contenteditable='true']") !== null
     )
   }
 
@@ -1853,24 +1853,6 @@
       pointerDidDrag = false
     })
 
-    sliderControl?.addEventListener("keydown", (event) => {
-      if (sliderControl.classList.contains("is-editing")) {
-        return
-      }
-
-      if (event.code === "ArrowRight" || event.code === "ArrowUp") {
-        event.preventDefault()
-        event.stopPropagation()
-        nudgeParameterInput(key, input, 1, event.shiftKey ? parameterWheelStepBoost : 1)
-        return
-      }
-
-      if (event.code === "ArrowLeft" || event.code === "ArrowDown") {
-        event.preventDefault()
-        event.stopPropagation()
-        nudgeParameterInput(key, input, -1, event.shiftKey ? parameterWheelStepBoost : 1)
-      }
-    })
   })
   nativeColorInput.addEventListener("input", () => {
     selectedColorValue = nativeColorInput.value
