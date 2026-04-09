@@ -260,10 +260,12 @@ html,
     opacity: 0.72;
   }
 
-  .menu-button.is-active {
-    background: rgba(255, 255, 255, 0.52);
-    border-color: rgba(95, 255, 146, 0.42);
-    color: rgba(18, 20, 24, 0.7);
+  .menu-button.is-active,
+  .menu-button.is-active:hover,
+  .menu-button.is-active:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.24);
+    color: rgba(255, 255, 255, 0.58);
   }
 
   .parameter-panel {
